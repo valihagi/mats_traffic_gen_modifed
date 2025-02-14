@@ -41,12 +41,12 @@ from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "pensive_curie"
-bridge_container_name = "vigilant_margulis"
+autoware_container_name = "loving_carver"
+bridge_container_name = "intelligent_kilby"
 
-autoware_terminal = "/dev/pts/14"
-bridge_terminal = "/dev/pts/15"
-default_terminal = "/dev/pts/20"
+autoware_terminal = "/dev/pts/5"
+bridge_terminal = "/dev/pts/6"
+default_terminal = "/dev/pts/7"
 
 
 """

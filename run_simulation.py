@@ -85,7 +85,7 @@ def kill_process(container_name, pid, default_terminal):
     
 def change_control_mode(container_name, default_terminal):
     command = (
-        "cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/ && "
+        "cd /home/u29r26/developing/autoware && "
         "source install/setup.bash && "
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
@@ -94,7 +94,7 @@ def change_control_mode(container_name, default_terminal):
     
 def check_is_stopped(container_name, default_terminal):
     command = (
-        "cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/ && "
+        "cd /home/u29r26/developing/autoware && "
         "source install/setup.bash && "
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
@@ -103,11 +103,11 @@ def check_is_stopped(container_name, default_terminal):
     
 def run_autoware_simulation(container_name, autoware_terminal):
     command = (
-        "cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/ && "
+        "cd /home/u29r26/developing/autoware && "
         "source install/setup.bash && "
         "ros2 launch autoware_launch e2e_simulator.launch.xml "
         "vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit "
-        "map_path:=/work/Valentin_dev/tumgeka_bridge/Town10 launch_system:=false"
+        "map_path:=/home/u29r26/developing/Town10 launch_system:=false"
     )
     return run_docker_command(container_name, command, autoware_terminal)
     
@@ -153,7 +153,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     CarlaDataProvider.get_world().tick()
     
     print("\n starting up...")
-    for i in tqdm(range(1000000)):
+    for i in tqdm(range(100)):
         CarlaDataProvider.get_world().tick()
         time.sleep(.1)
     
@@ -197,6 +197,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     
     #----------------main loop--------------------------------------------
     counter = 0
+    collision = False
     while not done:
         counter += 1
         actions = joint_policy(agents)

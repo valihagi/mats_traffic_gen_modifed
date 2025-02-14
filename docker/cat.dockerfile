@@ -21,10 +21,10 @@ COPY ./cat /mats-trafficgen/cat
 COPY ./requirements.txt /mats-trafficgen/requirements.txt
 
 # Install Python dependencies
-RUN pip3 install --no-cache-dir -r ./cat/requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt
-RUN pip3 install --no-cache-dir Cython
-RUN pip3 install --no-cache-dir docker
+RUN pip3 install -r ./cat/requirements.txt
+RUN pip3 install  -r requirements.txt
+RUN pip3 install  Cython
+RUN pip3 install  docker
 RUN pip3 install tqdm
 RUN pip3 install bezier==2023.7.28
 

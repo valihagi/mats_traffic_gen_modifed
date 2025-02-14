@@ -34,12 +34,10 @@ ln -s /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware/install/carla_t2
 
 ros2 launch autoware_launch planning_simulator.launch.xml map_path:=/work/Valentin_dev/tumgeka_bridge/Town05 vehicle_model:=sample_vehicle sensor_model:=sample_sensor_kit
 --
-rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /work/Valentin_dev/tumgeka_bridge -- ghcr.io/autowarefoundation/autoware:humble-2024.01-cuda-amd64
-
-rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /work/Valentin_dev/tumgeka_bridge -- ghcr.io/autowarefoundation/autoware-universe:humble-2024.01-cuda-amd64
-cd /work/Valentin_dev/tumgeka_bridge/autoware/
+rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /home/u29r26/developing -- ghcr.io/autowarefoundation/autoware:humble-2024.01-cuda-amd64
+cd /home/u29r26/developing/autoware
 source install/setup.bash
-ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town05
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/home/u29r26/developing/Town10 launch_system:=false
 
 ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town10
 
