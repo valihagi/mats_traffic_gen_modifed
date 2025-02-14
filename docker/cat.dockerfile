@@ -25,6 +25,8 @@ RUN pip3 install --no-cache-dir -r ./cat/requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install --no-cache-dir Cython
 RUN pip3 install --no-cache-dir docker
+RUN pip3 install tqdm
+RUN pip3 install bezier==2023.7.28
 
 # Create a symlink for numpy (if needed)
 RUN ln -s /usr/local/lib/python3.10/site-packages/numpy/core/include/numpy/ /usr/include/numpy 

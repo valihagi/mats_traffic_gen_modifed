@@ -2,9 +2,13 @@
 <OpenSCENARIO>
   <FileHeader revMajor="1" revMinor="0" date="2020-03-24T12:00:00" description="CARLA:SynchronizeIntersectionEntry" author=""/>
   <ParameterDeclarations/>
-  <CatalogLocations/>
+  <CatalogLocations>
+      <TrajectoryCatalog>
+         <Directory path="Catalogs/Trajectories"/>
+      </TrajectoryCatalog>
+   </CatalogLocations>
   <RoadNetwork>
-    <LogicFile filepath="Town01"/>
+    <LogicFile filepath="Town10HD"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
@@ -26,9 +30,9 @@
       </Vehicle>
     </ScenarioObject>
     <ScenarioObject name="adversary">
-      <Vehicle name="vehicle.audi.tt" vehicleCategory="bicycle">
+      <Vehicle name="vehicle.audi.tt" vehicleCategory="car">
         <ParameterDeclarations/>
-        <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10.0"/>
+        <Performance maxSpeed="49.444" maxAcceleration="200" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
@@ -63,7 +67,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="120" y="55" z="0" h="3.14159265359"/>
+                <WorldPosition x="106" y="48" z="0" h="-1.5707964"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -91,28 +95,9 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="92.5" y="91" z="0.2" h="-1.56"/>
+                <WorldPosition x="103" y="-10" z="0.2" h="1.5707964"/>
               </Position>
             </TeleportAction>
-          </PrivateAction>
-          <PrivateAction>
-            <ControllerAction>
-              <AssignControllerAction>
-                <Controller name="AdversaryAgent">
-                  <Properties>
-                    <Property name="module" value="npc_vehicle_control"/>
-                  </Properties>
-                </Controller>
-              </AssignControllerAction>
-              <OverrideControllerValueAction>
-                <Throttle value="0" active="false"/>
-                <Brake value="0" active="false"/>
-                <Clutch value="0" active="false"/>
-                <ParkingBrake value="0" active="false"/>
-                <SteeringWheel value="0" active="false"/>
-                <Gear number="0" active="false"/>
-              </OverrideControllerValueAction>
-            </ControllerAction>
           </PrivateAction>
         </Private>
       </Actions>
@@ -124,54 +109,41 @@
             <EntityRef entityRef="adversary"/>
           </Actors>
           <Maneuver name="SynchronizeManeuver">
-            <Event name="RouteCreation" priority="overwrite">
-              <Action name="RouteCreation">
-                <PrivateAction>
-                  <RoutingAction>
-                    <AcquirePositionAction>
-                      <Position>
-                        <WorldPosition x="92" y="13.5" z="0" h="0"/>
-                      </Position>
-                    </AcquirePositionAction>
-                  </RoutingAction>
-                </PrivateAction>
-              </Action>
-              <StartTrigger>
-                <ConditionGroup>
-                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
-                    <ByValueCondition>
-                      <SimulationTimeCondition value="0.1" rule="greaterThan"/>
-                    </ByValueCondition>
-                  </Condition>
-                </ConditionGroup>
-              </StartTrigger>
-            </Event>
-            <Event name="ActorSynchronization" priority="overwrite">
-              <Action name="ActorSynchronization">
-                <PrivateAction>
-                  <SynchronizeAction masterEntityRef="ego_vehicle">
-                    <TargetPositionMaster>
-                      <WorldPosition x="103" y="55" z="0" h="3.14159"/>
-                    </TargetPositionMaster>
-                    <TargetPosition>
-                      <WorldPosition x="92" y="63.8" z="0" h="-1.56"/>
-                    </TargetPosition>
-                    <FinalSpeed>
-                      <RelativeSpeedToMaster value='3' speedTargetValueType='delta'/>
-                    </FinalSpeed>
-                  </SynchronizeAction>
-                </PrivateAction>
-              </Action>
-              <StartTrigger>
-                <ConditionGroup>
-                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
-                    <ByValueCondition>
-                      <SimulationTimeCondition value="0.1" rule="greaterThan"/>
-                    </ByValueCondition>
-                  </Condition>
-                </ConditionGroup>
-              </StartTrigger>
-            </Event>
+            <Event name="AccelerateEvent"
+         	priority="overwrite"
+			maximumExecutionCount="1">
+	    		<Action name="F2 Follow Trajectory Action">
+				   <PrivateAction>
+					  <RoutingAction>
+						 <FollowTrajectoryAction>
+							<CatalogReference catalogName="TrajectoryCatalog" entryName="myRoute"/>
+							<TimeReference>
+				                            <None/>
+				                        </TimeReference>
+							<TrajectoryFollowingMode followingMode="follow"/>
+						 </FollowTrajectoryAction>
+					  </RoutingAction>
+				   </PrivateAction>
+				</Action>
+
+		    <StartTrigger>
+		      <ConditionGroup>
+			<Condition name="AccelerateStartCondition"
+				   delay="0"
+				   conditionEdge="none">
+			  <ByEntityCondition>
+				<TriggeringEntities triggeringEntitiesRule="any">
+				  <EntityRef entityRef="ego_vehicle"/>
+				</TriggeringEntities>
+				<EntityCondition>
+				  <TraveledDistanceCondition value="5"/>
+				</EntityCondition>
+			      </ByEntityCondition>
+			</Condition>
+		      </ConditionGroup>
+		    </StartTrigger>
+		  </Event>
+		  
           </Maneuver>
         </ManeuverGroup>
         <StartTrigger>

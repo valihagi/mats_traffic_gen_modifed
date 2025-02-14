@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  active-doe-server:
+    image: docker.avl.com/avl/cameo/active_doe:latest
+    ports:
+      - 8011:8011
+    environment:
+      - port=8011
+      - LM_LICENSE_FILE=27000@10.12.81.121
+  
+  

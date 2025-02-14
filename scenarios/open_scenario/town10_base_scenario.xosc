@@ -4,7 +4,7 @@
   <ParameterDeclarations/>
   <CatalogLocations/>
   <RoadNetwork>
-    <LogicFile filepath="Town01"/>
+    <LogicFile filepath="Town10HD"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
@@ -26,7 +26,7 @@
       </Vehicle>
     </ScenarioObject>
     <ScenarioObject name="adversary">
-      <Vehicle name="vehicle.audi.tt" vehicleCategory="bicycle">
+      <Vehicle name="vehicle.audi.tt" vehicleCategory="car">
         <ParameterDeclarations/>
         <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10.0"/>
         <BoundingBox>
@@ -63,7 +63,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="120" y="55" z="0" h="3.14159265359"/>
+                <WorldPosition x="106" y="48" z="0" h="-1.5707964"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -91,7 +91,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="92.5" y="91" z="0.2" h="-1.56"/>
+                <WorldPosition x="103" y="-10" z="0.2" h="1.5707964"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -124,54 +124,62 @@
             <EntityRef entityRef="adversary"/>
           </Actors>
           <Maneuver name="SynchronizeManeuver">
-            <Event name="RouteCreation" priority="overwrite">
-              <Action name="RouteCreation">
-                <PrivateAction>
-                  <RoutingAction>
-                    <AcquirePositionAction>
-                      <Position>
-                        <WorldPosition x="92" y="13.5" z="0" h="0"/>
-                      </Position>
-                    </AcquirePositionAction>
-                  </RoutingAction>
-                </PrivateAction>
-              </Action>
-              <StartTrigger>
-                <ConditionGroup>
-                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
-                    <ByValueCondition>
-                      <SimulationTimeCondition value="0.1" rule="greaterThan"/>
-                    </ByValueCondition>
-                  </Condition>
-                </ConditionGroup>
-              </StartTrigger>
-            </Event>
-            <Event name="ActorSynchronization" priority="overwrite">
-              <Action name="ActorSynchronization">
-                <PrivateAction>
-                  <SynchronizeAction masterEntityRef="ego_vehicle">
-                    <TargetPositionMaster>
-                      <WorldPosition x="103" y="55" z="0" h="3.14159"/>
-                    </TargetPositionMaster>
-                    <TargetPosition>
-                      <WorldPosition x="92" y="63.8" z="0" h="-1.56"/>
-                    </TargetPosition>
-                    <FinalSpeed>
-                      <RelativeSpeedToMaster value='3' speedTargetValueType='delta'/>
-                    </FinalSpeed>
-                  </SynchronizeAction>
-                </PrivateAction>
-              </Action>
-              <StartTrigger>
-                <ConditionGroup>
-                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
-                    <ByValueCondition>
-                      <SimulationTimeCondition value="0.1" rule="greaterThan"/>
-                    </ByValueCondition>
-                  </Condition>
-                </ConditionGroup>
-              </StartTrigger>
-            </Event>
+            <Event name="AccelerateEvent"
+         	priority="overwrite"
+			maximumExecutionCount="1">
+		    <Action name="FollowTrajectoryPLineAction">
+                                <PrivateAction>
+                                    <RoutingAction>
+                                        <FollowTrajectoryAction>
+                                            <Trajectory closed="false" name="TrajectoryPLine">
+                                                <ParameterDeclarations/>
+                                                <Shape>
+                                                    <Polyline>
+                                                        <Vertex time="0">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="0" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="10">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="10" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="10">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="70" h="0.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        
+                                                    </Polyline>
+                                                </Shape>
+                                            </Trajectory>
+                                            <TimeReference>
+                                                <Timing domainAbsoluteRelative="relative" offset="0" scale="1"/>
+                                            </TimeReference>
+                                            <TrajectoryFollowingMode followingMode="position"/>
+                                        </FollowTrajectoryAction>
+                                    </RoutingAction>
+                                </PrivateAction>
+                            </Action>
+		    <StartTrigger>
+		      <ConditionGroup>
+			<Condition name="AccelerateStartCondition"
+				   delay="0"
+				   conditionEdge="none">
+			  <ByEntityCondition>
+				<TriggeringEntities triggeringEntitiesRule="any">
+				  <EntityRef entityRef="ego_vehicle"/>
+				</TriggeringEntities>
+				<EntityCondition>
+				  <TraveledDistanceCondition value="5"/>
+				</EntityCondition>
+			      </ByEntityCondition>
+			</Condition>
+		      </ConditionGroup>
+		    </StartTrigger>
+		  </Event>
+		  
           </Maneuver>
         </ManeuverGroup>
         <StartTrigger>

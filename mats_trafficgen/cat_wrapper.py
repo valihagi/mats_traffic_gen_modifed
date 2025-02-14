@@ -1,6 +1,10 @@
+from datetime import datetime
 import enum
+import math
 import pickle
+import random
 
+import bezier
 import carla
 import gymnasium
 import numpy as np
@@ -111,6 +115,13 @@ def get_full_trajectory(id, features, with_yaw=False, future=None):
         trajs[-1] = future
     return np.concatenate(trajs, axis=0)
 
+def setup_collision_detector(sensor_bp_library, ego_vehicle):
+    collision_sensor = None
+    if ego_vehicle:
+        coll_sensor = sensor_bp_library.find('sensor.other.collision')
+        collision_sensor = ego_vehicle.get_world().spawn_actor(coll_sensor, carla.Transform(), attach_to=ego_vehicle)
+    return collision_sensor
+
 
 class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
@@ -143,6 +154,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         self._args = args
         self._model = VectorNet(args).to("cpu")
         self._model.load_state_dict(torch.load(model_path, map_location="cpu"))
+        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": []}
+        self.parameters = {}
 
     def reset(
             self, seed: int | None = None, options: dict | None = None
@@ -155,6 +168,15 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         obs, info = self.env.reset(seed, options)
         world: carla.World = CarlaDataProvider.get_world()
         map: carla.Map = CarlaDataProvider.get_map()
+
+        # collission sensor
+        self.coll = False
+        self._ego_actor = self.actors[self._ego_agent]
+        self.coll_sensor = setup_collision_detector(self.client.get_world().get_blueprint_library(), self._ego_actor)
+        def function_handler(event):
+            self.coll = True
+        self.coll_sensor.listen(function_handler)
+
         if self._map is None or map.name != self._map.name:
             self._map = map
             self._topology = map.get_topology()
@@ -175,9 +197,24 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             self._lane_ids = data["lane_ids"]
             self.roadgraph = data["roadgraph"]
 
+        """if options.get("random", False):
+            adv_traj = self._generate_random_adversarial_route(80)
+            info[self._adv_agent] = {}
+            info[self._adv_agent]["adv_trajectory"] = adv_traj
+
+        if options.get("parametrized", False):
+            adv_traj = self._generate_parametrized_adversarial_route(80)
+            info[self._adv_agent] = {}
+            info[self._adv_agent]["adv_trajectory"] = adv_traj"""
+
+            
+
         if options.get("adversarial", False):
+            # make option for random trajectory
             self._update_actor_ids()
             features, adv_traj = self._generate_adversarial_route()
+            if self._adv_agent not in info:
+                info[self._adv_agent] = {}
             info[self._adv_agent]["adv_trajectory"] = adv_traj
             #info[self._adv_agent]["all_trajectories"] = adv_traj
             #info[self._adv_agent]["is_critical"] = found_intersection
@@ -199,8 +236,19 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             in world.get_actors().filter("traffic.traffic_light")
         }
 
+        info["kpis"] = self.kpis
+        self.reset_kpis()
 
         return obs, info
+    
+    def get_kpis(self):
+        return self.kpis
+    
+    def reset_kpis(self):
+        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": []}
+    
+    def get_ttc_as_dict(self):
+        return {"ttc": self.kpis["ttc"]}
 
     def _update_actor_ids(self):
         for tl in CarlaDataProvider.get_world().get_actors().filter("traffic.traffic_light"):
@@ -248,6 +296,16 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 self._traffic_light_states[id].append(self._get_traffic_light_states(traffic_light))
 
         ego = self.actors[self._ego_agent]
+        adv = self.actors[self._adv_agent]
+
+        self.kpis["ttc"].append(self.calculate_ttc(ego, adv))
+        self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
+        #TODO calc other KPIs also here
+        self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
+        acc = adv.get_acceleration()
+        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+        info["kpis"] = self.kpis
+
         spectator = world.get_spectator()
         ego_loc = ego.get_location()
         spectator.set_transform(carla.Transform(
@@ -1029,3 +1087,338 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         settings: carla.WorldSettings = world.get_settings()
         settings.synchronous_mode = False
         world.apply_settings(settings)
+
+
+    def calculate_ttc(self, ego_vehicle, target_vehicle):
+        """
+        Calculate the Time to Collision (TTC) considering the heading and speed of the ego vehicle
+        and a target vehicle.
+
+        Args:
+            ego_vehicle (carla.Actor): The ego vehicle actor.
+            target_vehicle (carla.Actor): The target vehicle actor.
+
+        Returns:
+            float: The TTC value in timesteps, or None if no collision is predicted.
+        """
+        # Get the current locations of the vehicles
+        ego_location = ego_vehicle.get_transform().location
+        target_location = target_vehicle.get_transform().location
+
+        # Get the velocities of both vehicles
+        ego_velocity = ego_vehicle.get_velocity()
+        target_velocity = target_vehicle.get_velocity()
+
+        # Convert velocities to speeds
+        ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
+        target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
+
+        # If either vehicle is stationary, no collision can occur
+        if ego_speed == 0 and target_speed == 0:
+            return None
+        
+        for i in range (100):
+            ego_projected = ego_location + ego_velocity * i
+            target_projected = target_location + target_velocity * i
+            distance =  ego_projected - target_projected
+            if distance.x < 2 and distance.y < 2:
+                return i
+
+        return None
+    
+    def calculate_time_headway(self, ego_vehicle, target_vehicle):
+        """
+        Calculate the Time Headway considering the heading and speed of the ego vehicle
+        and the position of the target vehicle.
+
+        Args:
+            ego_vehicle (carla.Actor): The ego vehicle actor.
+            target_vehicle (carla.Actor): The target vehicle actor.
+
+        Returns:
+            float: The TH value in timesteps, or None if no collision is predicted.
+        """
+        # Get the current locations of the vehicles
+        ego_location = ego_vehicle.get_transform().location
+        target_location = target_vehicle.get_transform().location
+
+        # Get the velocities of both vehicles
+        ego_velocity = ego_vehicle.get_velocity()
+
+        # Convert velocities to speeds
+        ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
+
+        # If either vehicle is stationary, no collision can occur
+        if ego_speed == 0:
+            return None
+        
+        for i in range (100):
+            ego_projected = ego_location + ego_velocity * i
+            target_projected = target_location
+            distance =  ego_projected - target_projected
+            if distance.x < 2 and distance.y < 2:
+                return i
+
+        return None
+    
+    
+    def calculate_enhanced_ttc(self, ego_vehicle, target_vehicle):
+        """
+        Function to calculate the minimal time it takes for two actors given their current speed, heading and acc
+        to get to a collision state.
+
+        Args:
+            ego_vehicle (carla.Actor): The ego vehicle actor.
+            target_vehicle (carla.Actor): The target vehicle actor.
+
+        Returns:
+            float: The TTC value in timesteps, or None if no collision is predicted.
+        """
+         # Get initial positions
+        ego_location = ego_vehicle.get_transform().location
+        target_location = target_vehicle.get_transform().location
+
+        # Get initial velocities
+        ego_velocity = ego_vehicle.get_velocity()
+        target_velocity = target_vehicle.get_velocity()
+
+        # Convert velocity vectors to speed scalars
+        ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
+        target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
+
+        # Get accelerations
+        ego_accel = ego_vehicle.get_acceleration()
+        target_accel = target_vehicle.get_acceleration()
+
+        # If both vehicles are stationary, no collision is possible
+        if ego_speed == 0 and target_speed == 0:
+            return None
+
+        # Iterate through time steps to predict collision
+        for t in range(0, 100):
+            time = t # Convert step index to actual time
+
+            # Predict positions using kinematic equation: s = s0 + v0*t + 0.5*a*t^2
+            ego_projected_x = ego_location.x + ego_velocity.x * time + 0.5 * ego_accel.x * time**2
+            ego_projected_y = ego_location.y + ego_velocity.y * time + 0.5 * ego_accel.y * time**2
+
+            target_projected_x = target_location.x + target_velocity.x * time + 0.5 * target_accel.x * time**2
+            target_projected_y = target_location.y + target_velocity.y * time + 0.5 * target_accel.y * time**2
+
+            # Calculate distance
+            distance_x = abs(ego_projected_x - target_projected_x)
+            distance_y = abs(ego_projected_y - target_projected_y)
+
+            # Check if vehicles are within a collision threshold (2m x 2m box)
+            if distance_x < 2 and distance_y < 2:
+                return time
+
+        return None  # No collision predicted within max_time
+    
+    def calculate_ttc_near_collision(self, ego_vehicle, target_vehicle, near_col_threshold=6):
+        """
+        Function to calculate the minimal time it takes for two actors given their current speed and heading
+        to get to a near collision state.
+
+        Args:
+            ego_vehicle (carla.Actor): The ego vehicle actor.
+            target_vehicle (carla.Actor): The target vehicle actor.
+            near_col_threshold (int): Threshold of how far away the actors can be such that it still counts as near_collision
+            
+
+        Returns:
+            float: The TTC value in timesteps, or None if no collision is predicted.
+        """
+         # Get initial positions
+        ego_location = ego_vehicle.get_transform().location
+        target_location = target_vehicle.get_transform().location
+
+        # Get initial velocities
+        ego_velocity = ego_vehicle.get_velocity()
+        target_velocity = target_vehicle.get_velocity()
+
+        # Convert velocity vectors to speed scalars
+        ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
+        target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
+
+        # Get accelerations
+        ego_accel = ego_vehicle.get_acceleration()
+        target_accel = target_vehicle.get_acceleration()
+
+        # If both vehicles are stationary, no collision is possible
+        if ego_speed == 0 and target_speed == 0:
+            return None
+
+        # Iterate through time steps to predict collision
+        for t in range(0, 100):
+            time = t # Convert step index to actual time
+
+            # Predict positions using kinematic equation: s = s0 + v0*t + 0.5*a*t^2
+            ego_projected_x = ego_location.x + ego_velocity.x * time + 0.5 * ego_accel.x * time**2
+            ego_projected_y = ego_location.y + ego_velocity.y * time + 0.5 * ego_accel.y * time**2
+
+            target_projected_x = target_location.x + target_velocity.x * time + 0.5 * target_accel.x * time**2
+            target_projected_y = target_location.y + target_velocity.y * time + 0.5 * target_accel.y * time**2
+
+            # Calculate distance
+            distance_x = abs(ego_projected_x - target_projected_x)
+            distance_y = abs(ego_projected_y - target_projected_y)
+
+            # Check if vehicles are within a collision threshold (2m x 2m box)
+            if distance_x < near_col_threshold and distance_y < near_col_threshold:
+                return time
+
+        return None  # No collision predicted within max_time
+    
+
+    def _generate_random_adversarial_route(self, num_waypoints):
+        random.seed(datetime.now().timestamp())
+        vehicle = self.actors["adversary"]
+
+        x_start, y_start = vehicle.get_location().x, vehicle.get_location().y
+        end_x, end_y = create_random_end_point(vehicle)
+
+        # need two random control points to create a cubic bezier curve
+        x_ctrl_1, y_ctrl_1 = create_random_control_point(vehicle)
+        x_ctrl_2, y_ctrl_2 = create_random_control_point(vehicle)
+
+        nodes = np.asfortranarray([
+        [x_start, x_ctrl_1, x_ctrl_2, end_x],
+        [y_start, y_ctrl_1, y_ctrl_2, end_y],
+        ])
+        
+        curve = bezier.Curve.from_nodes(nodes)
+        
+        # calculate waypoints on the curve
+        trajectory = []
+        traj = []
+        for i in np.linspace(0, 1, num_waypoints):
+            speed = min(6.7, (i + 1) ** 15)
+            point = curve.evaluate(i)
+            trajectory.append([point[0][0], point[1][0], speed])
+            traj.append([point[0][0], point[1][0]])
+
+        ego_width, ego_length = vehicle.bounding_box.extent.y * 2, vehicle.bounding_box.extent.x * 2
+        ego_traj = np.concatenate([
+            traj,
+            np.rad2deg(get_polyline_yaw(traj)).reshape(-1, 1)
+        ], axis=1)
+
+        #visualize tracks
+        visualize_traj(
+            ego_traj[4:-4, 0],
+            ego_traj[4:-4, 1],
+            ego_traj[4:-4, 2],
+            ego_width,
+            ego_length,
+            (0, 5, 0)
+        )
+
+        return trajectory
+    
+    def _generate_parametrized_adversarial_route(self, num_waypoints):
+        vehicle = self.actors["adversary"]
+
+        x_start, y_start = vehicle.get_location().x, vehicle.get_location().y
+
+        transform = vehicle.get_transform()
+        x, y = transform.location.x, transform.location.y
+        distance = self.parameters["distance_to_target"] # 50 to 55
+        
+        angle_offset = self.parameters["angle_to_target"] #random.uniform(-math.pi / 2, math.pi / 2)
+        random_angle = math.radians(transform.rotation.yaw) + angle_offset
+
+        end_x = x + distance * math.cos(random_angle)
+        end_y = y + distance * math.sin(random_angle)
+
+
+        # need two random control points to create a cubic bezier curve
+        distance = self.parameters["distance_to_control"] # 20 to 30
+        
+        angle_offset = self.parameters["angle_to_control"] #random.uniform(-math.pi / 2, math.pi / 2)
+        random_angle = math.radians(transform.rotation.yaw) + angle_offset
+        x_ctrl_1 = x + distance * math.cos(random_angle)
+        y_ctrl_1 = y + distance * math.sin(random_angle)
+
+        nodes = np.asfortranarray([
+        [x_start, x_ctrl_1, end_x],
+        [y_start, y_ctrl_1, end_y],
+        ])
+        
+        curve = bezier.Curve.from_nodes(nodes)
+        
+        # calculate waypoints on the curve
+        trajectory = []
+        traj = []
+        for i in np.linspace(0, 1, num_waypoints):
+            speed = min(6.7, (i + 1) ** 15)
+            point = curve.evaluate(i)
+            trajectory.append([point[0][0], point[1][0], speed])
+            traj.append([point[0][0], point[1][0]])
+
+        ego_width, ego_length = vehicle.bounding_box.extent.y * 2, vehicle.bounding_box.extent.x * 2
+        ego_traj = np.concatenate([
+            traj,
+            np.rad2deg(get_polyline_yaw(traj)).reshape(-1, 1)
+        ], axis=1)
+
+        #visualize tracks
+        visualize_traj(
+            ego_traj[4:-4, 0],
+            ego_traj[4:-4, 1],
+            ego_traj[4:-4, 2],
+            ego_width,
+            ego_length,
+            (0, 5, 0)
+        )
+
+        return trajectory
+    
+    
+def create_random_control_point(vehicle):
+    half_width = 35
+    length = 45
+    transform = vehicle.get_transform()
+    x, y = transform.location.x, transform.location.y
+    heading = math.radians(transform.rotation.yaw)
+    #create borders of where random points are allowed to be
+    bottom_left_x = x - half_width * math.sin(heading)
+    bottom_left_y = y + half_width * math.cos(heading)
+
+    bottom_right_x = x + half_width * math.sin(heading)
+    bottom_right_y = y - half_width * math.cos(heading)
+
+    top_left_x = bottom_left_x + length * math.cos(heading)
+    top_left_y = bottom_left_y + length * math.sin(heading)
+
+    top_right_x = bottom_right_x + length * math.cos(heading)
+    top_right_y = bottom_right_y + length * math.sin(heading)
+
+    # Calculate min and max values
+    x_min = min(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
+    x_max = max(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
+    y_min = min(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
+    y_max = max(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
+
+    random_x = random.uniform(x_min, x_max)
+    random_y = random.uniform(y_min, y_max)
+    return random_x, random_y
+
+    
+def create_random_end_point(vehicle):
+    transform = vehicle.get_transform()
+    x, y = transform.location.x, transform.location.y
+    distance = random.uniform(50, 55)
+    
+    angle_offset = random.uniform(-math.pi / 2, math.pi / 2)
+    random_angle = math.radians(transform.rotation.yaw) + angle_offset
+
+    new_x = x + distance * math.cos(random_angle)
+    new_y = y + distance * math.sin(random_angle)
+
+    return new_x, new_y
+
+
+
+
+

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OpenSCENARIO>
+	<FileHeader author="dSPACE and DLR" date="2020-08-29T11:10:54" description="TrajectoryCatalog: RS205_Karte; VERSION: 1.1.0" revMajor="1" revMinor="0"/>
+	<Catalog name="TrajectoryCatalog">
+		<Trajectory closed="false" name="myRoute">
+			<Shape>
+                                                    <Polyline>
+                                                        <Vertex time="0">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="0" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="3">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="3" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="7">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="10" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="9">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="12" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="11">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="15" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="15">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="35" h="1.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        <Vertex time="20">
+                                                            <Position>
+                                                                <WorldPosition x="103" y="80" h="0.5707964" />
+                                                            </Position>
+                                                        </Vertex>
+                                                        
+                                                    </Polyline>
+                                                </Shape>
+		</Trajectory>
+	</Catalog>
+</OpenSCENARIO>

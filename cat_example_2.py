@@ -91,7 +91,7 @@ def main(args):
     		[1, 0, 0.0]  # + np.random.rand() / 2,  # throttle  # steer  # brake
    	)
         
-
+        
     def joint_policy(agents):
         actions = {}
         for agent in agents:
@@ -114,13 +114,12 @@ def main(args):
             done = all(done.values())
             #env.render()
             i = i + 1
-            #if i >= 100:
-                #time.sleep(1)
-            time.sleep(.2)
+            if i >= 500:
+                break
+            time.sleep(.02)
             done = False
 
         obs, info = env.reset(options={
-            "scene": scene,
             "adversarial": True
         })
 
@@ -136,11 +135,16 @@ def main(args):
         agents["adversary"] = adv_agent
 
         done = False
+        i = 0
         while not done:
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
             done = all(done.values())
             env.render()
+            i = i + 1
+            if i >= 500:
+                break
+            time.sleep(0.02)
 
         scene, _ = scenario.generate()
     env.close()
