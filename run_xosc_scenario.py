@@ -41,12 +41,12 @@ from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "loving_carver"
-bridge_container_name = "intelligent_kilby"
+autoware_container_name = "clever_panini"
+bridge_container_name = "determined_buck"
 
-autoware_terminal = "/dev/pts/5"
-bridge_terminal = "/dev/pts/6"
-default_terminal = "/dev/pts/7"
+autoware_terminal = "/dev/pts/2"
+bridge_terminal = "/dev/pts/3"
+default_terminal = "/dev/pts/4"
 
 
 """
@@ -124,14 +124,23 @@ def main(args):
     #dummy target point for ego, needs to be set for xosc scenarios
     # Hardcoded for now since ego behaviour is not specified in our xosc file
     #(76,17)
-    direction_vector = (-1, 0)
+    direction_vector = (1, 0)
     angle_rad = math.atan2(direction_vector[1], direction_vector[0])
     angle_deg = math.degrees(angle_rad)
     
     target_point = carla.Transform(
-        carla.Location(76, 17, 0.0),  # Assuming Z = 0 for ground level
+        carla.Location(71, -13.5, 0.0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
     )
+    autoware_target_point = None #"""{
+            #'x': 71.0,
+            #'y': -13.5,
+            #'z': 0.0,  # Assuming Z remains the same
+            #'x1': 0.0,
+            #'y1': 0.0,
+            #'z1': -0.9999924884745914,
+            #'w': 0.003875950772917655
+        #}"""
     print("Target point is:----------------:")
     print(target_point)
     #get same as in scenic scneario should work
@@ -212,7 +221,8 @@ def main(args):
                        target_point=target_point,
                        strategy=strategy,
                        adv_path=traj,
-                       pose_publisher=pose_publisher)
+                       pose_publisher=pose_publisher,
+                       autoware_target_point= autoware_target_point)
                     
                     #get KPIS
             return
@@ -272,7 +282,8 @@ def main(args):
                        target_point=target_point,
                        strategy=strategy,
                        adv_path=traj,
-                       pose_publisher=pose_publisher)
+                       pose_publisher=pose_publisher,
+                       autoware_target_point= autoware_target_point)
         
         #get KPIS
 

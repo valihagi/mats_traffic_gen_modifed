@@ -125,14 +125,12 @@ def joint_policy(agents):
         for agent in agents:
             if agent != "ego_vehicle":
                 ctrl = agents[agent].run_step()
-                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
-                #actions[agent] = np.array([.50, 0, 0])
-            else:
+                #actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
                 actions[agent] = np.array([.50, 0, 0])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher):
+                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, autoware_target_point=None):
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
         
     if scene is not None:
@@ -161,7 +159,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(520)):
+    for i in tqdm(range(400)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
@@ -170,7 +168,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     if scene is not None:
         pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
     else:
-        pose_publisher.convert_from_carla_to_autoware(target_point)
+        pose_publisher.convert_from_carla_to_autoware(target_point, autoware_target_point)
 
     try:
         rclpy.spin_once(pose_publisher, timeout_sec=2)
@@ -178,14 +176,14 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         pass
     
     print("\n watiting for autonomous mode....")
-    for i in tqdm(range(60)):
+    for i in tqdm(range(40)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
         
     control_change_process = change_control_mode(autoware_container_name, default_terminal)
     
     print("\n starting autoware...")
-    for i in tqdm(range(200)):
+    for i in tqdm(range(20)):
         #TODO implement wait for ego to have specific speed
         vel = env.actors["ego_vehicle"].get_velocity()
         speed = np.linalg.norm([vel.x, vel.y])
@@ -265,7 +263,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
     print("waiting for autoware....")
-    for i in tqdm(range(580)):
+    for i in tqdm(range(440)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     
@@ -281,14 +279,14 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         pass
     
     print("waiting for autonomous mode....")
-    for i in tqdm(range(60)):
+    for i in tqdm(range(40)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
         
     control_change_process = change_control_mode(autoware_container_name, default_terminal)
     
     print("starting autoware....")
-    for i in tqdm(range(200)):
+    for i in tqdm(range(20)):
         vel = env.actors["ego_vehicle"].get_velocity()
         speed = np.linalg.norm([vel.x, vel.y])
         if speed > 2:

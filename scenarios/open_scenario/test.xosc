@@ -136,7 +136,7 @@
 				  <EntityRef entityRef="ego_vehicle"/>
 				</TriggeringEntities>
 				<EntityCondition>
-				  <TraveledDistanceCondition value="5"/>
+				  <TraveledDistanceCondition value="0.1"/>
 				</EntityCondition>
 			      </ByEntityCondition>
 			</Condition>
