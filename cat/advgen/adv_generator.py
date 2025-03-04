@@ -110,7 +110,7 @@ class AdvGenerator():
     def __init__(self,parser, pretrained_path = None):
         advgen.utils.add_argument(parser)
         parser.set_defaults(other_params=['l1_loss','densetnt', 'goals_2D', 'enhance_global_graph' ,'laneGCN' ,'point_sub_graph', 'laneGCN-4' ,'stride_10_2' ,'raster'])
-        parser.set_defaults(mode_num=256)
+        parser.set_defaults(mode_num=64)
         args = parser.parse_args()
         logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',

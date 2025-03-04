@@ -298,12 +298,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         ego = self.actors[self._ego_agent]
         adv = self.actors[self._adv_agent]
 
-        self.kpis["ttc"].append(self.calculate_ttc(ego, adv))
-        self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
-        #TODO calc other KPIs also here
-        self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
-        acc = adv.get_acceleration()
-        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+        # calculate KPIs and add them to self.kpis
+        self.calculate_kpis(ego, adv)
+
         info["kpis"] = self.kpis
 
         spectator = world.get_spectator()
@@ -1087,6 +1084,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         settings: carla.WorldSettings = world.get_settings()
         settings.synchronous_mode = False
         world.apply_settings(settings)
+
+    def calculate_kpis(self, ego, adv):
+        self.kpis["ttc"].append(self.calculate_ttc(ego, adv))
+        self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
+        #TODO calc other KPIs also here
+        self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
+        acc = adv.get_acceleration()
+        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
 
 
     def calculate_ttc(self, ego_vehicle, target_vehicle):

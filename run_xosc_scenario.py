@@ -41,7 +41,7 @@ from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "clever_panini"
+autoware_container_name = "strange_kepler"
 bridge_container_name = "determined_buck"
 
 autoware_terminal = "/dev/pts/2"
@@ -292,7 +292,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--OV_traj_num', type=int, default=256)
+    parser.add_argument('--OV_traj_num', type=int, default=64)
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
