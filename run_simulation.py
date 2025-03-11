@@ -130,7 +130,7 @@ def joint_policy(agents):
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, autoware_target_point=None):
+                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, autoware_target_point=None, num_iterations=10):
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
         
     if scene is not None:
@@ -210,12 +210,12 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
             done = True
     #--------------------------------------------------------------------------
 
-    ttc = info["kpis"]["ttc"][-1]
+    #ttc = info["kpis"]["ttc"][-1]
 
     #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
     #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
-    print(f"min ttc: {ttc}")
-    print(f"collision: {collision}")
+    #print(f"min ttc: {ttc}")
+    #print(f"collision: {collision}")
         
     print("----------------------")
     print("restarting containers")
@@ -229,103 +229,105 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         # calc metrics and return them
         return
     
-    aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
-    try:
-        obs, info = env.reset(options={
-            "scene": scene,
-            "adversarial": True
-        })
-    except:
-        subprocess.run(["bash", "/work/Valentin_dev/mats-trafficgen-main/Carla/CarlaUE4.sh"], check=True)
-        obs, info = env.reset(options={
-            "scene": scene,
-            "adversarial": True
-        })
+    for iteration in range(num_iterations):
+        print(f"Starting ADV scenario iteration {iteration} \n")
+        aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
+        try:
+            obs, info = env.reset(options={
+                "scene": scene,
+                "adversarial": True
+            })
+        except:
+            subprocess.run(["bash", "/work/Valentin_dev/mats-trafficgen-main/Carla/CarlaUE4.sh"], check=True)
+            obs, info = env.reset(options={
+                "scene": scene,
+                "adversarial": True
+            })
 
-    gt_yaw = info["kpis"]["adv_yaw"]
-    gt_acc = info["kpis"]["adv_acc"]
+        gt_yaw = info["kpis"]["adv_yaw"]
+        gt_acc = info["kpis"]["adv_acc"]
 
-    traj = [
-        (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
-        for point in info["adversary"]["adv_trajectory"]
-    ]
-    adv_agent = TrajectoryFollowingAgent(
-        vehicle=env.actors["adversary"],
-        trajectory=traj
-    )
-    if scene is not None:
-        agents = get_agents(env)
-    else:
-        agents = {}
-        agents["ego_vehicle"] = {"ego_vehicle"}
-    agents["adversary"] = adv_agent
-    
-    carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
-
-    print("waiting for autoware....")
-    for i in tqdm(range(440)):
-        time.sleep(.1)
-        CarlaDataProvider.get_world().tick()
-    
-    if scene is not None:
-        pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
-    else:
-        pose_publisher.convert_from_carla_to_autoware(target_point)
-
-    CarlaDataProvider.get_world().tick()
-    try:
-            rclpy.spin_once(pose_publisher, timeout_sec=2)
-    except KeyboardInterrupt:
-        pass
-    
-    print("waiting for autonomous mode....")
-    for i in tqdm(range(40)):
-        time.sleep(.1)
-        CarlaDataProvider.get_world().tick()
+        traj = [
+            (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
+            for point in info["adversary"]["adv_trajectory"]
+        ]
+        adv_agent = TrajectoryFollowingAgent(
+            vehicle=env.actors["adversary"],
+            trajectory=traj
+        )
+        if scene is not None:
+            agents = get_agents(env)
+        else:
+            agents = {}
+            agents["ego_vehicle"] = {"ego_vehicle"}
+        agents["adversary"] = adv_agent
         
-    control_change_process = change_control_mode(autoware_container_name, default_terminal)
-    
-    print("starting autoware....")
-    for i in tqdm(range(20)):
-        vel = env.actors["ego_vehicle"].get_velocity()
-        speed = np.linalg.norm([vel.x, vel.y])
-        if speed > 2:
-            break
-        time.sleep(.02)
+        carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
+
+        print("waiting for autoware....")
+        for i in tqdm(range(480)):
+            time.sleep(.1)
+            CarlaDataProvider.get_world().tick()
+        
+        if scene is not None:
+            pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
+        else:
+            pose_publisher.convert_from_carla_to_autoware(target_point)
+
         CarlaDataProvider.get_world().tick()
-    print("-------Starting now:-------------")
+        try:
+                rclpy.spin_once(pose_publisher, timeout_sec=2)
+        except KeyboardInterrupt:
+            pass
+        
+        print("waiting for autonomous mode....")
+        for i in tqdm(range(40)):
+            time.sleep(.1)
+            CarlaDataProvider.get_world().tick()
+            
+        control_change_process = change_control_mode(autoware_container_name, default_terminal)
+        
+        print("starting autoware....")
+        for i in tqdm(range(60)):
+            vel = env.actors["ego_vehicle"].get_velocity()
+            speed = np.linalg.norm([vel.x, vel.y])
+            if speed > 2:
+                break
+            time.sleep(.02)
+            CarlaDataProvider.get_world().tick()
+        print("-------Starting now:-------------")
 
-    done = False
-    #-----------------------------main loop-----------------------------------
-    while not done:
-        actions = joint_policy(agents)
-        obs, reward, done, truncated, info = env.step(actions)
-        if env.coll:
-            collision = True
-            break
-        done = all(done.values())
-        env.render()
-        time.sleep(.02)
-    #---------------------------------------------------------------------------
+        done = False
+        #-----------------------------main loop-----------------------------------
+        while not done:
+            actions = joint_policy(agents)
+            obs, reward, done, truncated, info = env.step(actions)
+            if env.coll:
+                collision = True
+                break
+            done = all(done.values())
+            env.render()
+            time.sleep(.02)
+        #---------------------------------------------------------------------------
 
-    other_yaw = info["kpis"]["adv_yaw"]
-    other_acc = info["kpis"]["adv_acc"]
-    ttc = min(info["kpis"]["ttc"])
+        other_yaw = info["kpis"]["adv_yaw"]
+        other_acc = info["kpis"]["adv_acc"]
+        #ttc = min(info["kpis"]["ttc"])
 
-    #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
-    #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
-    print(f"min ttc: {ttc}")
-    print(f"collision: {collision}")
-    
-    print("----------------------")
-    print("restarting containers")
+        #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
+        #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
+        #print(f"min ttc: {ttc}")
+        #print(f"collision: {collision}")
+        
+        print("----------------------")
+        print("restarting containers")
 
-    run_docker_restart_command(bridge_container_name, default_terminal)
-    run_docker_restart_command(autoware_container_name, default_terminal)
+        run_docker_restart_command(bridge_container_name, default_terminal)
+        run_docker_restart_command(autoware_container_name, default_terminal)
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher):
+                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher):
         
     if scene is not None:
         agents = get_agents(env)

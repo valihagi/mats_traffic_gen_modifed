@@ -5,402 +5,402 @@
 		<Trajectory closed="false" name="myRoute">
 			<Shape>
                                                     <Polyline>
-                                                        <Vertex time="0.0">
+                                                        <Vertex time="4.0">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="-5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="0.581">
+                                                        <Vertex time="4.581">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="-3" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="0.822">
+                                                        <Vertex time="4.822">
                                                             <Position>
                                                                 <WorldPosition x="103" y="0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.006">
+                                                        <Vertex time="5.006">
                                                             <Position>
                                                                 <WorldPosition x="103" y="0.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.162">
+                                                        <Vertex time="5.162">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="0.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.299">
+                                                        <Vertex time="5.299">
                                                             <Position>
                                                                 <WorldPosition x="103" y="1.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.423">
+                                                        <Vertex time="5.423">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="1.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.537">
+                                                        <Vertex time="5.537">
                                                             <Position>
                                                                 <WorldPosition x="103" y="2.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.643">
+                                                        <Vertex time="5.643">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="2.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.743">
+                                                        <Vertex time="5.743">
                                                             <Position>
                                                                 <WorldPosition x="103" y="3.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.837">
+                                                        <Vertex time="5.837">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="3.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="1.927">
+                                                        <Vertex time="5.927">
                                                             <Position>
                                                                 <WorldPosition x="103" y="4.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.013">
+                                                        <Vertex time="6.013">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="4.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.095">
+                                                        <Vertex time="6.095">
                                                             <Position>
                                                                 <WorldPosition x="103" y="5.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.174">
+                                                        <Vertex time="6.174">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="5.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.25">
+                                                        <Vertex time="6.25">
                                                             <Position>
                                                                 <WorldPosition x="103" y="6.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.324">
+                                                        <Vertex time="6.324">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="6.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.395">
+                                                        <Vertex time="6.395">
                                                             <Position>
                                                                 <WorldPosition x="103" y="7.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.465">
+                                                        <Vertex time="6.465">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="7.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.532">
+                                                        <Vertex time="6.532">
                                                             <Position>
                                                                 <WorldPosition x="103" y="8.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.598">
+                                                        <Vertex time="6.598">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="8.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.662">
+                                                        <Vertex time="6.662">
                                                             <Position>
                                                                 <WorldPosition x="103" y="9.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.725">
+                                                        <Vertex time="6.725">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="9.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.786">
+                                                        <Vertex time="6.786">
                                                             <Position>
                                                                 <WorldPosition x="103" y="10.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.846">
+                                                        <Vertex time="6.846">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="10.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.905">
+                                                        <Vertex time="6.905">
                                                             <Position>
                                                                 <WorldPosition x="103" y="11.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="2.962">
+                                                        <Vertex time="6.962">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="11.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.019">
+                                                        <Vertex time="7.019">
                                                             <Position>
                                                                 <WorldPosition x="103" y="12.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.074">
+                                                        <Vertex time="7.074">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="12.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.129">
+                                                        <Vertex time="7.129">
                                                             <Position>
                                                                 <WorldPosition x="103" y="13.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.182">
+                                                        <Vertex time="7.182">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="13.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.235">
+                                                        <Vertex time="7.235">
                                                             <Position>
                                                                 <WorldPosition x="103" y="14.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.287">
+                                                        <Vertex time="7.287">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="14.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.338">
+                                                        <Vertex time="7.338">
                                                             <Position>
                                                                 <WorldPosition x="103" y="15.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.388">
+                                                        <Vertex time="7.388">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="15.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.439">
+                                                        <Vertex time="7.439">
                                                             <Position>
                                                                 <WorldPosition x="103" y="16.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.489">
+                                                        <Vertex time="7.489">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="16.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.54">
+                                                        <Vertex time="7.54">
                                                             <Position>
                                                                 <WorldPosition x="103" y="17.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.591">
+                                                        <Vertex time="7.591">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="17.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.641">
+                                                        <Vertex time="7.641">
                                                             <Position>
                                                                 <WorldPosition x="103" y="18.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.692">
+                                                        <Vertex time="7.692">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="18.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.743">
+                                                        <Vertex time="7.743">
                                                             <Position>
                                                                 <WorldPosition x="103" y="19.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.793">
+                                                        <Vertex time="7.793">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="19.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.844">
+                                                        <Vertex time="7.844">
                                                             <Position>
                                                                 <WorldPosition x="103" y="20.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.895">
+                                                        <Vertex time="7.895">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="20.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.945">
+                                                        <Vertex time="7.945">
                                                             <Position>
                                                                 <WorldPosition x="103" y="21.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="3.996">
+                                                        <Vertex time="7.996">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="21.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.047">
+                                                        <Vertex time="8.047">
                                                             <Position>
                                                                 <WorldPosition x="103" y="22.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.099">
+                                                        <Vertex time="8.099">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="22.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.151">
+                                                        <Vertex time="8.151">
                                                             <Position>
                                                                 <WorldPosition x="103" y="23.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.205">
+                                                        <Vertex time="8.205">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="23.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.259">
+                                                        <Vertex time="8.259">
                                                             <Position>
                                                                 <WorldPosition x="103" y="24.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.314">
+                                                        <Vertex time="8.314">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="24.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.371">
+                                                        <Vertex time="8.371">
                                                             <Position>
                                                                 <WorldPosition x="103" y="25.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.428">
+                                                        <Vertex time="8.428">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="25.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.487">
+                                                        <Vertex time="8.487">
                                                             <Position>
                                                                 <WorldPosition x="103" y="26.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.547">
+                                                        <Vertex time="8.547">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="26.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.608">
+                                                        <Vertex time="8.608">
                                                             <Position>
                                                                 <WorldPosition x="103" y="27.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.671">
+                                                        <Vertex time="8.671">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="27.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.735">
+                                                        <Vertex time="8.735">
                                                             <Position>
                                                                 <WorldPosition x="103" y="28.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.801">
+                                                        <Vertex time="8.801">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="28.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.868">
+                                                        <Vertex time="8.868">
                                                             <Position>
                                                                 <WorldPosition x="103" y="29.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="4.938">
+                                                        <Vertex time="8.938">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="29.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.009">
+                                                        <Vertex time="9.009">
                                                             <Position>
                                                                 <WorldPosition x="103" y="30.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.083">
+                                                        <Vertex time="9.083">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="30.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.159">
+                                                        <Vertex time="9.159">
                                                             <Position>
                                                                 <WorldPosition x="103" y="31.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.239">
+                                                        <Vertex time="9.239">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="31.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.321">
+                                                        <Vertex time="9.321">
                                                             <Position>
                                                                 <WorldPosition x="103" y="32.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.406">
+                                                        <Vertex time="9.406">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="32.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.496">
+                                                        <Vertex time="9.496">
                                                             <Position>
                                                                 <WorldPosition x="103" y="33.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.59">
+                                                        <Vertex time="9.59">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="33.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.69">
+                                                        <Vertex time="9.69">
                                                             <Position>
                                                                 <WorldPosition x="103" y="34.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.796">
+                                                        <Vertex time="9.796">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="34.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="5.91">
+                                                        <Vertex time="9.91">
                                                             <Position>
                                                                 <WorldPosition x="103" y="35.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="6.034">
+                                                        <Vertex time="10.034">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="35.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="6.171">
+                                                        <Vertex time="10.171">
                                                             <Position>
                                                                 <WorldPosition x="103" y="36.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="6.327">
+                                                        <Vertex time="10.327">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="36.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="6.512">
+                                                        <Vertex time="10.512">
                                                             <Position>
                                                                 <WorldPosition x="103" y="37.0" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="6.752">
+                                                        <Vertex time="10.752">
                                                             <Position>
                                                                 <WorldPosition x="103.0" y="37.5" h="1.5707964" />
                                                             </Position>
                                                         </Vertex>
-                                                        <Vertex time="7.333">
+                                                        <Vertex time="11.333">
                                                             <Position>
                                                                 <WorldPosition x="103" y="38.0" h="1.5707964" />
                                                             </Position>

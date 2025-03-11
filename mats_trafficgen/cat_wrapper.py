@@ -41,6 +41,12 @@ class RoadGraphTypes(enum.Enum):
     CROSSWALK = 18
     SPEED_BUMP = 19
 
+class GLOBALS(enum.Enum):
+    DEFAULT_FOR_TTC = 10000
+    MAX_TIME_FOR_TTC = 20
+    TTC_TIMESTEP = 0.001
+    TTC_THRESHOLD = 2
+
 
 class AgentTypes(enum.Enum):
     VEHICLE = 1
@@ -430,6 +436,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         features, ego_route = self._get_features()
 
         pred_trajectory, pred_score = self._sample_trajectories(features)
+        #remove trajs that are not on roadgraph
         scores = self._score_trajectories(pred_trajectory, pred_score, features)
         adv_traj_id, adv_traj = self._select_colliding_trajectory(features, pred_score, pred_trajectory)
 
@@ -1086,6 +1093,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         world.apply_settings(settings)
 
     def calculate_kpis(self, ego, adv):
+        try:
+            ego.bounding_box_extent.x
+        except:
+            return
         self.kpis["ttc"].append(self.calculate_ttc(ego, adv))
         self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
         #TODO calc other KPIs also here
@@ -1106,7 +1117,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             float: The TTC value in timesteps, or None if no collision is predicted.
         """
-        # Get the current locations of the vehicles
+        # get bounding boxes:
+        width, length = ego_vehicle.bounding_box_extent.y * 2, ego_vehicle.bounding_box_extent.x * 2
+        adv_width, adv_length = target_vehicle.bounding_box_extent.y * 2, target_vehicle.bounding_box_extent.x * 2
+
         ego_location = ego_vehicle.get_transform().location
         target_location = target_vehicle.get_transform().location
 
@@ -1114,22 +1128,30 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         ego_velocity = ego_vehicle.get_velocity()
         target_velocity = target_vehicle.get_velocity()
 
-        # Convert velocities to speeds
+        time = 0.0
+    
+        half_w1, half_l1 = width / 2, length / 2
+        half_w2, half_l2 = adv_width / 2, adv_length / 2
+
         ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
         target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
 
-        # If either vehicle is stationary, no collision can occur
         if ego_speed == 0 and target_speed == 0:
-            return None
+            return GLOBALS.DEFAULT_FOR_TTC
         
-        for i in range (100):
-            ego_projected = ego_location + ego_velocity * i
-            target_projected = target_location + target_velocity * i
-            distance =  ego_projected - target_projected
-            if distance.x < 2 and distance.y < 2:
-                return i
-
-        return None
+        while time <= GLOBALS.MAX_TIME_FOR_TTC:
+            # Update positions
+            curr_pos1 = np.array(ego_location) + np.array(ego_velocity) * time
+            curr_pos2 = np.array(target_location) + np.array(target_velocity) * time
+            
+            # Check if bounding boxes overlap
+            if (abs(curr_pos1[0] - curr_pos2[0]) <= (half_w1 + half_w2)) and \
+            (abs(curr_pos1[1] - curr_pos2[1]) <= (half_l1 + half_l2)):
+                return time  # Collision detected
+            
+            time += GLOBALS.TTC_TIMESTEP  # Increment time step
+        
+        return GLOBALS.DEFAULT_FOR_TTC  # No collision within max_time
     
     def calculate_time_headway(self, ego_vehicle, target_vehicle):
         """
@@ -1143,28 +1165,38 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             float: The TH value in timesteps, or None if no collision is predicted.
         """
-        # Get the current locations of the vehicles
+        # get bounding boxes:
+        width, length = ego_vehicle.bounding_box_extent.y * 2, ego_vehicle.bounding_box_extent.x * 2
+        adv_width, adv_length = target_vehicle.bounding_box_extent.y * 2, target_vehicle.bounding_box_extent.x * 2
+
         ego_location = ego_vehicle.get_transform().location
         target_location = target_vehicle.get_transform().location
 
         # Get the velocities of both vehicles
         ego_velocity = ego_vehicle.get_velocity()
 
-        # Convert velocities to speeds
+        time = 0.0
+    
+        half_w1, half_l1 = width / 2, length / 2
+        half_w2, half_l2 = adv_width / 2, adv_length / 2
+
         ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
 
-        # If either vehicle is stationary, no collision can occur
         if ego_speed == 0:
-            return None
+            return GLOBALS.DEFAULT_FOR_TTC
         
-        for i in range (100):
-            ego_projected = ego_location + ego_velocity * i
-            target_projected = target_location
-            distance =  ego_projected - target_projected
-            if distance.x < 2 and distance.y < 2:
-                return i
-
-        return None
+        while time <= GLOBALS.MAX_TIME_FOR_TTC:
+            # Update positions
+            curr_pos1 = np.array(ego_location) + np.array(ego_velocity) * time
+            
+            # Check if bounding boxes overlap
+            if (abs(curr_pos1[0] - target_location[0]) <= (half_w1 + half_w2)) and \
+            (abs(curr_pos1[1] - target_location[1]) <= (half_l1 + half_l2)):
+                return time  # Collision detected
+            
+            time += GLOBALS.TTC_TIMESTEP  # Increment time step
+        
+        return GLOBALS.DEFAULT_FOR_TTC  # No collision within max_time
     
     
     def calculate_enhanced_ttc(self, ego_vehicle, target_vehicle):
@@ -1179,46 +1211,48 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             float: The TTC value in timesteps, or None if no collision is predicted.
         """
-         # Get initial positions
+        # get bounding boxes:
+        width, length = ego_vehicle.bounding_box_extent.y * 2, ego_vehicle.bounding_box_extent.x * 2
+        adv_width, adv_length = target_vehicle.bounding_box_extent.y * 2, target_vehicle.bounding_box_extent.x * 2
+
         ego_location = ego_vehicle.get_transform().location
         target_location = target_vehicle.get_transform().location
 
-        # Get initial velocities
+        # Get the velocities of both vehicles
         ego_velocity = ego_vehicle.get_velocity()
         target_velocity = target_vehicle.get_velocity()
 
-        # Convert velocity vectors to speed scalars
+        time = 0.0
+    
+        half_w1, half_l1 = width / 2, length / 2
+        half_w2, half_l2 = adv_width / 2, adv_length / 2
+
         ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
         target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
 
-        # Get accelerations
         ego_accel = ego_vehicle.get_acceleration()
         target_accel = target_vehicle.get_acceleration()
 
-        # If both vehicles are stationary, no collision is possible
         if ego_speed == 0 and target_speed == 0:
-            return None
-
-        # Iterate through time steps to predict collision
-        for t in range(0, 100):
-            time = t # Convert step index to actual time
-
-            # Predict positions using kinematic equation: s = s0 + v0*t + 0.5*a*t^2
-            ego_projected_x = ego_location.x + ego_velocity.x * time + 0.5 * ego_accel.x * time**2
-            ego_projected_y = ego_location.y + ego_velocity.y * time + 0.5 * ego_accel.y * time**2
-
-            target_projected_x = target_location.x + target_velocity.x * time + 0.5 * target_accel.x * time**2
-            target_projected_y = target_location.y + target_velocity.y * time + 0.5 * target_accel.y * time**2
-
-            # Calculate distance
-            distance_x = abs(ego_projected_x - target_projected_x)
-            distance_y = abs(ego_projected_y - target_projected_y)
-
-            # Check if vehicles are within a collision threshold (2m x 2m box)
-            if distance_x < 2 and distance_y < 2:
-                return time
-
-        return None  # No collision predicted within max_time
+            return GLOBALS.DEFAULT_FOR_TTC
+        
+        while time <= GLOBALS.MAX_TIME_FOR_TTC:
+            # Update velocities
+            curr_vel1 = np.array(ego_velocity) + np.array(ego_accel) * time
+            curr_vel2 = np.array(target_velocity) + np.array(target_accel) * time
+            
+            # Update positions using kinematic equation
+            curr_pos1 = np.array(ego_location) + np.array(ego_velocity) * time + 0.5 * np.array(ego_accel) * time**2
+            curr_pos2 = np.array(target_location) + np.array(target_velocity) * time + 0.5 * np.array(target_accel) * time**2
+            
+            # Check if bounding boxes overlap
+            if (abs(curr_pos1[0] - curr_pos2[0]) <= (half_w1 + half_w2)) and \
+            (abs(curr_pos1[1] - curr_pos2[1]) <= (half_l1 + half_l2)):
+                return time  # Collision detected
+            
+            time += GLOBALS.TTC_TIMESTEP  # Increment time step
+        
+        return GLOBALS.DEFAULT_FOR_TTC  # No collision within max_time
     
     def calculate_ttc_near_collision(self, ego_vehicle, target_vehicle, near_col_threshold=6):
         """
@@ -1234,46 +1268,40 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             float: The TTC value in timesteps, or None if no collision is predicted.
         """
-         # Get initial positions
+        # get bounding boxes:
+        width, length = ego_vehicle.bounding_box_extent.y * 2, ego_vehicle.bounding_box_extent.x * 2
+        adv_width, adv_length = target_vehicle.bounding_box_extent.y * 2, target_vehicle.bounding_box_extent.x * 2
+
         ego_location = ego_vehicle.get_transform().location
         target_location = target_vehicle.get_transform().location
 
-        # Get initial velocities
+        # Get the velocities of both vehicles
         ego_velocity = ego_vehicle.get_velocity()
         target_velocity = target_vehicle.get_velocity()
 
-        # Convert velocity vectors to speed scalars
+        time = 0.0
+
         ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
         target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
 
-        # Get accelerations
-        ego_accel = ego_vehicle.get_acceleration()
-        target_accel = target_vehicle.get_acceleration()
-
-        # If both vehicles are stationary, no collision is possible
         if ego_speed == 0 and target_speed == 0:
-            return None
-
-        # Iterate through time steps to predict collision
-        for t in range(0, 100):
-            time = t # Convert step index to actual time
-
-            # Predict positions using kinematic equation: s = s0 + v0*t + 0.5*a*t^2
-            ego_projected_x = ego_location.x + ego_velocity.x * time + 0.5 * ego_accel.x * time**2
-            ego_projected_y = ego_location.y + ego_velocity.y * time + 0.5 * ego_accel.y * time**2
-
-            target_projected_x = target_location.x + target_velocity.x * time + 0.5 * target_accel.x * time**2
-            target_projected_y = target_location.y + target_velocity.y * time + 0.5 * target_accel.y * time**2
-
-            # Calculate distance
-            distance_x = abs(ego_projected_x - target_projected_x)
-            distance_y = abs(ego_projected_y - target_projected_y)
-
-            # Check if vehicles are within a collision threshold (2m x 2m box)
-            if distance_x < near_col_threshold and distance_y < near_col_threshold:
-                return time
-
-        return None  # No collision predicted within max_time
+            return GLOBALS.DEFAULT_FOR_TTC
+    
+        while time <= GLOBALS.MAX_TIME_FOR_TTC:
+            # Update positions using velocity
+            curr_pos1 = np.array(ego_location) + np.array(ego_velocity) * time
+            curr_pos2 = np.array(target_location) + np.array(target_velocity) * time
+            
+            # Compute Euclidean distance between centers
+            distance = np.linalg.norm(curr_pos1 - curr_pos2)
+            
+            # Check if distance is below the threshold
+            if distance <= GLOBALS.TTC_THRESHOLD:
+                return time  # Near collision detected
+            
+            time += GLOBALS.TTC_TIMESTEP  # Increment time step
+        
+        return GLOBALS.DEFAULT_FOR_TTC   # No near collision within max_time
     
 
     def _generate_random_adversarial_route(self, num_waypoints):
