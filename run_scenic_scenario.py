@@ -10,7 +10,7 @@ import time
 from active_doe_module.webapi_client import active_doe_client
 import mats_gym
 import numpy as np
-from run_simulation import run_simulation
+from run_simulation import run_dummy_simulation, run_simulation
 import scenic
 from agents.navigation.basic_agent import BasicAgent
 from mats_gym.envs.renderers import camera_pov
@@ -183,7 +183,7 @@ def main(args):
                 "scene": scene
             })
 
-        run_simulation(autoware_container_name=autoware_container_name,
+        run_dummy_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
                        default_terminal=default_terminal,
                        autoware_terminal=autoware_terminal,

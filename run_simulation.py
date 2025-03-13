@@ -123,10 +123,11 @@ def run_carla_aw_bridge(container_name, bridge_terminal):
 def joint_policy(agents):
         actions = {}
         for agent in agents:
-            if agent != "ego_vehicle":
-                ctrl = agents[agent].run_step()
-                #actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+            if agent == "ego_vehicle":
                 actions[agent] = np.array([.50, 0, 0])
+            else:
+                ctrl = agents[agent].run_step()
+                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
@@ -327,7 +328,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher):
+                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, autoware_target_point=None, num_iterations=10):
         
     if scene is not None:
         agents = get_agents(env)
@@ -368,50 +369,51 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
         # calc metrics and return them
         return
     
+    for iteration in range(num_iterations):
+        print(f"Starting ADV scenario iteration {iteration} \n")
+        obs, info = env.reset(options={
+            "scene": scene,
+            "adversarial": True
+        })
 
-    obs, info = env.reset(options={
-        "scene": scene,
-        "adversarial": True
-    })
+        gt_yaw = info["kpis"]["adv_yaw"]
+        gt_acc = info["kpis"]["adv_acc"]
 
-    gt_yaw = info["kpis"]["adv_yaw"]
-    gt_acc = info["kpis"]["adv_acc"]
-
-    traj = [
-        (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
-        for point in info["adversary"]["adv_trajectory"]
-    ]
-    adv_agent = TrajectoryFollowingAgent(
-        vehicle=env.actors["adversary"],
-        trajectory=traj
-    )
-    if scene is not None:
-        agents = get_agents(env)
-    else:
-        agents = {}
-        agents["ego_vehicle"] = {"ego_vehicle"}
-    agents["adversary"] = adv_agent
+        traj = [
+            (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
+            for point in info["adversary"]["adv_trajectory"]
+        ]
+        adv_agent = TrajectoryFollowingAgent(
+            vehicle=env.actors["adversary"],
+            trajectory=traj
+        )
+        if scene is not None:
+            agents = get_agents(env)
+        else:
+            agents = {}
+            agents["ego_vehicle"] = {"ego_vehicle"}
+        agents["adversary"] = adv_agent
 
 
-    done = False
-    #-----------------------------main loop-----------------------------------
-    while not done:
-        actions = joint_policy(agents)
-        obs, reward, done, truncated, info = env.step(actions)
-        if env.coll:
-            collision = True
-            break
-        done = all(done.values())
-        env.render()
-        time.sleep(.02)
-    #---------------------------------------------------------------------------
+        done = False
+        #-----------------------------main loop-----------------------------------
+        while not done:
+            actions = joint_policy(agents)
+            obs, reward, done, truncated, info = env.step(actions)
+            if env.coll:
+                collision = True
+                break
+            done = all(done.values())
+            env.render()
+            time.sleep(.02)
+        #---------------------------------------------------------------------------
 
-    other_yaw = info["kpis"]["adv_yaw"]
-    other_acc = info["kpis"]["adv_acc"]
-    #ttc = min(info["kpis"]["ttc"])
+        other_yaw = info["kpis"]["adv_yaw"]
+        other_acc = info["kpis"]["adv_acc"]
+        #ttc = min(info["kpis"]["ttc"])
 
-    #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
-    #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
-    #print(f"min ttc: {ttc}")
-    print(f"collision: {collision}")
+        #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
+        #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
+        #print(f"min ttc: {ttc}")
+        #print(f"collision: {collision}")
     
