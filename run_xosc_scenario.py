@@ -41,12 +41,12 @@ from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "strange_kepler"
-bridge_container_name = "determined_buck"
+autoware_container_name = "thirsty_goldberg"
+bridge_container_name = "awesome_herschel"
 
-autoware_terminal = "/dev/pts/2"
-bridge_terminal = "/dev/pts/3"
-default_terminal = "/dev/pts/4"
+autoware_terminal = "/dev/pts/8"
+bridge_terminal = "/dev/pts/9"
+default_terminal = "/dev/pts/10"
 
 
 """
@@ -220,7 +220,7 @@ def main(args):
                        scene=None,
                        target_point=target_point,
                        strategy=strategy,
-                       adv_path=traj,
+                       adv_path=adv_traj,
                        pose_publisher=pose_publisher,
                        autoware_target_point= autoware_target_point)
                     
@@ -271,7 +271,7 @@ def main(args):
             obs, info = env.reset(options={
             })
 
-        run_simulation(autoware_container_name=autoware_container_name,
+        run_dummy_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
                        default_terminal=default_terminal,
                        autoware_terminal=autoware_terminal,
@@ -281,7 +281,7 @@ def main(args):
                        scene=None,
                        target_point=target_point,
                        strategy=strategy,
-                       adv_path=traj,
+                       adv_path=adv_traj,
                        pose_publisher=pose_publisher,
                        autoware_target_point= autoware_target_point)
         
@@ -296,6 +296,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="cat")
+    parser.add_argument('--strategy', type=str, default="random")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)

@@ -624,7 +624,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         spectator = world.get_spectator()
         ego_loc = ego.get_location()
         spectator.set_transform(carla.Transform(
-            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 50),
+            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 80),
             carla.Rotation(pitch=-90)
         ))
         settings = world.get_settings()

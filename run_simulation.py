@@ -123,11 +123,12 @@ def run_carla_aw_bridge(container_name, bridge_terminal):
 def joint_policy(agents):
         actions = {}
         for agent in agents:
+            print(agent)
             if agent == "ego_vehicle":
-                actions[agent] = np.array([.50, 0, 0])
+                actions[agent] = np.array([.60, 0, 0])
             else:
                 ctrl = agents[agent].run_step()
-                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+                actions[agent] = np.array([.50, 0, 0]) #np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
@@ -201,6 +202,10 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
+        if counter % 40 == 0:
+            print("sleeping for testing")
+            time.sleep(2)
+            print("waking up again")
         time.sleep(.02)
         if env.coll:
             collision = True
@@ -332,6 +337,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
         
     if scene is not None:
         agents = get_agents(env)
+        print(agents)
     else:
         agents = {}
         agents["ego_vehicle"] = {"ego_vehicle"}
@@ -341,6 +347,8 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
             trajectory=adv_path
         )
         agents["adversary"] = adv_agent
+        print(adv_agent)
+    print(agents)
 
     client = carla.Client(args.carla_host, args.carla_port)
     
@@ -356,10 +364,12 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
         if env.coll:
             collision = True
             break
-        done = all(done.values())
+        #done = all(done.values())
         env.render()
         if counter > 450:
             done = True
+        else:
+            done = False
     #--------------------------------------------------------------------------
 
 

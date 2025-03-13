@@ -108,43 +108,7 @@
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="adversary"/>
           </Actors>
-          <Maneuver name="SynchronizeManeuver">
-            <Event name="AccelerateEvent"
-         	priority="overwrite"
-			maximumExecutionCount="1">
-	    		<Action name="F2 Follow Trajectory Action">
-				   <PrivateAction>
-					  <RoutingAction>
-						 <FollowTrajectoryAction>
-							<CatalogReference catalogName="TrajectoryCatalog" entryName="myRoute"/>
-							<TimeReference>
-				                            <None/>
-				                        </TimeReference>
-							<TrajectoryFollowingMode followingMode="follow"/>
-						 </FollowTrajectoryAction>
-					  </RoutingAction>
-				   </PrivateAction>
-				</Action>
-
-		    <StartTrigger>
-		      <ConditionGroup>
-			<Condition name="AccelerateStartCondition"
-				   delay="0"
-				   conditionEdge="none">
-			  <ByEntityCondition>
-				<TriggeringEntities triggeringEntitiesRule="any">
-				  <EntityRef entityRef="ego_vehicle"/>
-				</TriggeringEntities>
-				<EntityCondition>
-				  <TraveledDistanceCondition value="0.1"/>
-				</EntityCondition>
-			      </ByEntityCondition>
-			</Condition>
-		      </ConditionGroup>
-		    </StartTrigger>
-		  </Event>
-		  
-          </Maneuver>
+          
         </ManeuverGroup>
         <StartTrigger>
           <ConditionGroup>
