@@ -37,6 +37,13 @@ import math
 from tqdm import tqdm
 from scipy.stats import wasserstein_distance
 from active_doe_module.webapi_client import active_doe_client
+from enum import IntEnum
+
+class WaitingTime(IntEnum):
+    STARTTRIGGERSPEED = 2
+    WAITFORAUTONOMOUS = 40
+    MAXSTARTDELAY = 140
+    MAXTIMESTEPS = 320
 
 
 class FakeWaypoint:
@@ -123,12 +130,9 @@ def run_carla_aw_bridge(container_name, bridge_terminal):
 def joint_policy(agents):
         actions = {}
         for agent in agents:
-            print(agent)
-            if agent == "ego_vehicle":
-                actions[agent] = np.array([.60, 0, 0])
-            else:
+            if agent != "ego_vehicle":
                 ctrl = agents[agent].run_step()
-                actions[agent] = np.array([.50, 0, 0]) #np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
@@ -141,9 +145,10 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         agents = {}
         agents["ego_vehicle"] = {"ego_vehicle"}
     if adv_path is not None:
+        traj = [(carla.Location(x=point[0], y=point[1]), point[2] * 3.6) for point in adv_path]
         adv_agent = TrajectoryFollowingAgent(
             vehicle=env.actors["adversary"],
-            trajectory=adv_path
+            trajectory=traj
         )
         agents["adversary"] = adv_agent
 
@@ -161,7 +166,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(400)):
+    for i in tqdm(range(460)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
@@ -178,20 +183,20 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         pass
     
     print("\n watiting for autonomous mode....")
-    for i in tqdm(range(40)):
+    for i in tqdm(range(WaitingTime.WAITFORAUTONOMOUS)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
         
     control_change_process = change_control_mode(autoware_container_name, default_terminal)
     
     print("\n starting autoware...")
-    for i in tqdm(range(20)):
+    for i in tqdm(range(WaitingTime.MAXSTARTDELAY)):
         #TODO implement wait for ego to have specific speed
         vel = env.actors["ego_vehicle"].get_velocity()
         speed = np.linalg.norm([vel.x, vel.y])
-        if speed > 2:
+        if speed > WaitingTime.STARTTRIGGERSPEED:
             break
-        time.sleep(.02)
+        time.sleep(.01)
         CarlaDataProvider.get_world().tick()
     print("-------Starting now:-------------")
     
@@ -202,18 +207,20 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
-        if counter % 40 == 0:
+        """if counter % 40 == 0:
             print("sleeping for testing")
             time.sleep(2)
-            print("waking up again")
-        time.sleep(.02)
+            print("waking up again")"""
+        time.sleep(.03)
         if env.coll:
             collision = True
             break
-        done = all(done.values())
+        #done = all(done.values())
         env.render()
-        if counter > 350:
+        if counter > WaitingTime.MAXTIMESTEPS:
             done = True
+        else:
+            done = False
     #--------------------------------------------------------------------------
 
     #ttc = info["kpis"]["ttc"][-1]
@@ -287,19 +294,19 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
             pass
         
         print("waiting for autonomous mode....")
-        for i in tqdm(range(40)):
+        for i in tqdm(range(WaitingTime.WAITFORAUTONOMOUS)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
             
         control_change_process = change_control_mode(autoware_container_name, default_terminal)
         
         print("starting autoware....")
-        for i in tqdm(range(60)):
+        for i in tqdm(range(WaitingTime.MAXSTARTDELAY)):
             vel = env.actors["ego_vehicle"].get_velocity()
             speed = np.linalg.norm([vel.x, vel.y])
-            if speed > 2:
+            if speed > WaitingTime.STARTTRIGGERSPEED:
                 break
-            time.sleep(.02)
+            time.sleep(.01)
             CarlaDataProvider.get_world().tick()
         print("-------Starting now:-------------")
 
@@ -311,9 +318,13 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
             if env.coll:
                 collision = True
                 break
-            done = all(done.values())
+            #done = all(done.values())
             env.render()
-            time.sleep(.02)
+            if counter > WaitingTime.MAXTIMESTEPS:
+                done = True
+            else:
+                done = False
+            time.sleep(.01)
         #---------------------------------------------------------------------------
 
         other_yaw = info["kpis"]["adv_yaw"]
@@ -337,18 +348,16 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
         
     if scene is not None:
         agents = get_agents(env)
-        print(agents)
     else:
         agents = {}
         agents["ego_vehicle"] = {"ego_vehicle"}
     if adv_path is not None:
+        traj = [(carla.Location(x=point[0], y=point[1]), point[2] * 3.6) for point in adv_path]
         adv_agent = TrajectoryFollowingAgent(
             vehicle=env.actors["adversary"],
-            trajectory=adv_path
+            trajectory=traj
         )
         agents["adversary"] = adv_agent
-        print(adv_agent)
-    print(agents)
 
     client = carla.Client(args.carla_host, args.carla_port)
     
@@ -366,7 +375,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
             break
         #done = all(done.values())
         env.render()
-        if counter > 450:
+        if counter > WaitingTime.MAXTIMESTEPS:
             done = True
         else:
             done = False

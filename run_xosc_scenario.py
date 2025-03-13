@@ -271,7 +271,7 @@ def main(args):
             obs, info = env.reset(options={
             })
 
-        run_dummy_simulation(autoware_container_name=autoware_container_name,
+        run_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
                        default_terminal=default_terminal,
                        autoware_terminal=autoware_terminal,
