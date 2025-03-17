@@ -25,6 +25,7 @@ from time import sleep
 from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_msgs.msg import Header
+import json
 from pose_publisher import PosePublisher
 from helpers import run_docker_command
 from helpers import get_docker_ouptut
@@ -136,7 +137,7 @@ def joint_policy(agents):
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, autoware_target_point=None, num_iterations=10):
+                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=10):
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
         
     if scene is not None:
@@ -239,7 +240,18 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
 
     #--------------------return if we are not within a CAT run-----------------------
     if strategy != "cat":
-        # calc metrics and return them
+        # calc metrics and return them / also save trajectories that where executed
+        ego_traj = env._trajectories["ego"]
+        adv_traj = env._trajectories["adversary"]
+
+        data = {
+            "ego_traj": ego_traj,
+            "adv_traj": adv_traj,
+            "kpis": info["kpis"]
+        }
+
+        with open(f'data{iteration}.json', 'w') as f:
+            json.dump(data, f)
         return
     
     for iteration in range(num_iterations):
@@ -341,10 +353,24 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
 
         run_docker_restart_command(bridge_container_name, default_terminal)
         run_docker_restart_command(autoware_container_name, default_terminal)
+        
+        #saving
+        ego_traj = env._trajectories["ego"]
+        adv_traj = env._trajectories["adversary"]
+
+        data = {
+            "ego_traj": ego_traj,
+            "adv_traj": adv_traj,
+            "kpis": info["kpis"]
+        }
+
+        with open(f'data{iteration}.json', 'w') as f:
+            json.dump(data, f)
+        return
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, autoware_target_point=None, num_iterations=10):
+                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50):
         
     if scene is not None:
         agents = get_agents(env)
@@ -430,6 +456,18 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
         other_yaw = info["kpis"]["adv_yaw"]
         other_acc = info["kpis"]["adv_acc"]
         #ttc = min(info["kpis"]["ttc"])
+        #save stuff here
+        ego_traj = env._trajectories["ego"]
+        adv_traj = env._trajectories["adversary"]
+
+        data = {
+            "ego_traj": ego_traj,
+            "adv_traj": adv_traj,
+            "kpis": info["kpis"]
+        }
+
+        with open(f'data{iteration}.json', 'w') as f:
+            json.dump(data, f)
 
         #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
         #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")

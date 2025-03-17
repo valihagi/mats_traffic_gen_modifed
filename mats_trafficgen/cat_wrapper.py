@@ -43,7 +43,7 @@ class RoadGraphTypes(enum.Enum):
     SPEED_BUMP = 19
 
 class GLOBALS(enum.Enum):
-    DEFAULT_FOR_TTC = 10000
+    DEFAULT_FOR_TTC = 100000
     MAX_TIME_FOR_TTC = 20
     TTC_TIMESTEP = 0.001
     TTC_THRESHOLD = 2
@@ -1258,7 +1258,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         if t_entry < t_exit and t_exit > 0:
             return max(t_entry, 0)
         else:
-            return 100000
+            return GLOBALS.DEFAULT_FOR_TTC
 
 
     def calculate_ttc(self, ego_vehicle, target_vehicle):

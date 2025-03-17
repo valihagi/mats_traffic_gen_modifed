@@ -283,6 +283,7 @@ def main(args):
                        strategy=strategy,
                        adv_path=adv_traj,
                        pose_publisher=pose_publisher,
+                       iteration=e,
                        autoware_target_point= autoware_target_point)
         
         #get KPIS
@@ -294,7 +295,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--OV_traj_num', type=int, default=64)
     parser.add_argument('--AV_traj_num', type=int, default=1)
-    parser.add_argument('--carla-host', type=str, default="localhost")
+    parser.add_argument('--carla-host', type=str, default="172.24.128.1")
     parser.add_argument('--carla-port', type=int, default=2000)
     parser.add_argument('--strategy', type=str, default="random")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
