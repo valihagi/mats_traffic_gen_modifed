@@ -40,9 +40,9 @@ from active_doe_module.webapi_client import active_doe_client
 from enum import IntEnum
 
 class WaitingTime(IntEnum):
-    STARTTRIGGERSPEED = 2
+    STARTTRIGGERSPEED = 1.5
     WAITFORAUTONOMOUS = 40
-    MAXSTARTDELAY = 140
+    MAXSTARTDELAY = 150
     MAXTIMESTEPS = 320
 
 
@@ -166,7 +166,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(460)):
+    for i in tqdm(range(500)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
@@ -278,7 +278,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(480)):
+        for i in tqdm(range(550)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         

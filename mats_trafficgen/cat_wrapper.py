@@ -20,6 +20,7 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from cat.advgen.adv_generator import get_polyline_yaw, Intersect, get_polyline_vel
 from cat.advgen.adv_utils import process_data
 from cat.advgen.modeling.vectornet import VectorNet
+from scipy.spatial import cKDTree
 
 
 class RoadGraphTypes(enum.Enum):
@@ -466,6 +467,26 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         for j, prob_OV in enumerate(probs_OV):
             P1 = prob_OV
             traj_OV = trajs_OV[j][::5]
+            #---------------------
+            traj_OV_plot = trajs_OV[j]
+            full_adv_traj = get_full_trajectory(self.agents.index(self._adv_agent), features, future=traj_OV_plot)[:,::-1]
+            full_adv_traj = np.concatenate([
+                full_adv_traj,
+                np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
+            ], axis=1)
+            # CHeck if on roadgraph here:
+            if not self.check_on_roadgraph(full_adv_traj, j):
+                P4 = 0 #can be used to only allow trajs that are on the roadgraph
+            
+                """visualize_traj(
+                    full_adv_traj[4:-4, 0],
+                    full_adv_traj[4:-4, 1],
+                    full_adv_traj[4:-4, 2],
+                    1.4,
+                    2.9,
+                    (5, 5, 5)
+                )"""
+            #------------------------
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
             length_OV = adv_length
@@ -652,6 +673,68 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         features["scenario/id"] = np.array(["template"])
         features["state/objects_of_interest"] = features['state/tracks_to_predict'].copy()
         return features, ego_route
+    
+    def check_on_roadgraph(self, trajectory, idx):
+        # Define solid line types
+        solid_line_types = {7, 8, 9, 10, 11, 12}
+
+        road_surface = self.road_surface
+        road_edges = self.road_edges
+        road_markings = self.road_markings
+
+        surface_xyz = road_surface["xyz"][:, :2]
+        surface_dir = road_surface["dir"]
+        edges_xyz = road_edges["xyz"][:, :2]
+        markings_xyz = road_markings["xyz"][:, :2]
+
+        # Build KD-Trees for fast nearest-neighbor searches
+        tree_surface = cKDTree(surface_xyz) if surface_xyz is not None else None
+        tree_edges = cKDTree(edges_xyz) if edges_xyz is not None else None
+        tree_markings = cKDTree(markings_xyz) if markings_xyz is not None else None
+
+        for x, y, yaw in trajectory:
+            # --- 1. Check closest road surface (yaw alignment) ---
+            if tree_surface:
+                #TODO change here to not only take the closest point but check at least 5 or so to care for intersetions!!
+                surface_dist, idx_surface = tree_surface.query([x, y], k=5)
+                yaw_diff = []
+                for dist, idx in zip(surface_dist, idx_surface):
+                    closest_surface_yaw = np.degrees(np.arctan2(road_surface["dir"][idx_surface][1], road_surface["dir"][idx_surface][0])) 
+                    yaw_diff.append(abs(yaw - closest_surface_yaw))
+
+                if any(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
+                    print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff:.2f} rad")
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
+                    self.plot_stuff_traj(trajectory, idx)
+                    return False  
+
+            # --- 2. Check distance to closest road edge ---
+            if tree_edges:
+                edge_dist, _ = tree_edges.query([x, y], k=1)
+
+                if edge_dist < 0.8:  # Too close to the edge
+                    print(f"Too close to road edge at ({x}, {y}), dist={edge_dist:.2f}")
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
+                    self.plot_stuff_traj(trajectory, idx)
+                    return False  
+                if surface_dist > edge_dist:
+                    print(f"Closer to road edge than to road surface -> out of lane.")
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
+                    self.plot_stuff_traj(trajectory, idx)
+                    return False
+
+            # --- 3. Check if crossing solid road markings ---
+            if tree_markings:
+                marking_dist, idx_marking = tree_markings.query([x, y], k=1)
+                marking_type = road_markings["type"][idx_marking]
+
+                if marking_type in solid_line_types and marking_dist < 0.8:
+                    print(f"Crossed solid line at ({x}, {y}), dist={marking_dist:.2f}")
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
+                    self.plot_stuff_traj(trajectory, idx)
+                    return False  
+
+        return True  # If no violations occur
 
     def _get_state_features(self, ego_agent: str) -> tuple[dict, np.ndarray]:
         state_features = {
@@ -1103,6 +1186,79 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
         acc = adv.get_acceleration()
         self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+
+    
+    def get_aabb(self, vehicle):
+        # Get pose info from CARLA vehicle
+        transform = vehicle.get_transform()
+        location = transform.location
+        yaw = np.deg2rad(transform.rotation.yaw)  # Convert degrees to radians
+        
+        # Assume bounding box dimensions are available from vehicle
+        bbox = vehicle.bounding_box
+        width = bbox.extent.y * 2  # extent.y is half-width
+        length = bbox.extent.x * 2  # extent.x is half-length
+        
+        # Get rotated AABB in world frame
+        corners = np.array([
+            [-width / 2, -length / 2],
+            [ width / 2, -length / 2],
+            [ width / 2,  length / 2],
+            [-width / 2,  length / 2]
+        ])
+        
+        c, s = np.cos(yaw), np.sin(yaw)
+        R = np.array([[c, -s], [s, c]])
+        rotated = (R @ corners.T).T
+        rotated += np.array([location.x, location.y])
+        
+        min_x, min_y = rotated.min(axis=0)
+        max_x, max_y = rotated.max(axis=0)
+        return min_x, max_x, min_y, max_y
+    
+    def get_velocity_xy(self, vehicle):
+        velocity = vehicle.get_velocity()
+        return np.array([velocity.x, velocity.y])
+    
+
+    def time_to_collision_aabb(self, vehicle1, vehicle2):
+        min_x1, max_x1, min_y1, max_y1 = self.get_aabb(vehicle1)
+        min_x2, max_x2, min_y2, max_y2 = self.get_aabb(vehicle2)
+        
+        # Relative velocity
+        v1_vel = self.get_velocity_xy(vehicle1)
+        v2_vel = self.get_velocity_xy(vehicle2)
+        rel_vel = v2_vel - v1_vel
+        
+        # Relative position of box2 to box1 AABB
+        center1 = np.array([(min_x1 + max_x1) / 2, (min_y1 + max_y1) / 2])
+        center2 = np.array([(min_x2 + max_x2) / 2, (min_y2 + max_y2) / 2])
+        rel_pos = center2 - center1
+        
+        # Combined half extents
+        half_w = ((max_x1 - min_x1) + (max_x2 - min_x2)) / 2
+        half_l = ((max_y1 - min_y1) + (max_y2 - min_y2)) / 2
+
+        def axis_ttc(r_pos, r_vel, half_size):
+            if r_vel == 0:
+                if abs(r_pos) > half_size:
+                    return np.inf, -np.inf
+                else:
+                    return -np.inf, np.inf
+            t1 = (-(half_size) - r_pos) / r_vel
+            t2 = (half_size - r_pos) / r_vel
+            return min(t1, t2), max(t1, t2)
+
+        t_entry_x, t_exit_x = axis_ttc(rel_pos[0], rel_vel[0], half_w)
+        t_entry_y, t_exit_y = axis_ttc(rel_pos[1], rel_vel[1], half_l)
+        
+        t_entry = max(t_entry_x, t_entry_y)
+        t_exit = min(t_exit_x, t_exit_y)
+
+        if t_entry < t_exit and t_exit > 0:
+            return max(t_entry, 0)
+        else:
+            return 100000
 
 
     def calculate_ttc(self, ego_vehicle, target_vehicle):

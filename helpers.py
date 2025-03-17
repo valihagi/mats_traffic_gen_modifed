@@ -329,12 +329,14 @@ def generate_even_timestamps(num_points, timespan):
     return np.linspace(0, timespan, num_points)
 
 def create_random_end_point(vehicle):
+    min_dist = 30
+    max_dist = 55
     transform = vehicle.get_transform()
     x, y = transform.location.x, transform.location.y
-    distance = random.uniform(50, 55)
-    
-    angle_offset = random.uniform(-math.pi / 2, math.pi / 2)
+    epsilon = 0.1
+    angle_offset = random.uniform(-math.pi / 2 + epsilon, math.pi / 2 - epsilon) # epsilon to not allow fully 90 degree
     random_angle = math.radians(transform.rotation.yaw) + angle_offset
+    distance = random.uniform(min_dist * max(0.5,math.cos(angle_offset)), max_dist * max(0.5,math.cos(angle_offset)))
 
     new_x = x + distance * math.cos(random_angle)
     new_y = y + distance * math.sin(random_angle)
@@ -343,31 +345,42 @@ def create_random_end_point(vehicle):
 
 
 def create_random_control_point(vehicle):
-    half_width = 35
-    length = 45
+    width=30
     transform = vehicle.get_transform()
-    x, y = transform.location.x, transform.location.y
-    heading = math.radians(transform.rotation.yaw)
-    #create borders of where random points are allowed to be
-    bottom_left_x = x - half_width * math.sin(heading)
-    bottom_left_y = y + half_width * math.cos(heading)
+    yaw = math.radians(transform.rotation.yaw)
+    distance = 5
+    start_x, start_y = transform.location.x + distance * math.cos(yaw), transform.location.y + distance * math.sin(yaw)
+    target_x, target_y = target_x - distance * math.cos(yaw), target_y - distance * math.sin(yaw)
+    dx = target_x - start_x
+    dy = target_y - start_y
+    length = math.sqrt(dx**2 + dy**2)
 
-    bottom_right_x = x + half_width * math.sin(heading)
-    bottom_right_y = y - half_width * math.cos(heading)
+    if length == 0:
+        raise ValueError("Start and end points are the same; rectangle cannot be created.")
 
-    top_left_x = bottom_left_x + length * math.cos(heading)
-    top_left_y = bottom_left_y + length * math.sin(heading)
+    # Normalize direction vector
+    dx /= length
+    dy /= length
 
-    top_right_x = bottom_right_x + length * math.cos(heading)
-    top_right_y = bottom_right_y + length * math.sin(heading)
+    # Compute perpendicular vector
+    perp_x = -dy  # Rotate by 90 degrees
+    perp_y = dx
 
-    # Calculate min and max values
-    x_min = min(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
-    x_max = max(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
-    y_min = min(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
-    y_max = max(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
+    # Half width for correct placement
+    half_width = width / 2
 
-    random_x = random.uniform(x_min, x_max)
-    random_y = random.uniform(y_min, y_max)
+    # Compute the four corners of the rectangle
+    bottom_left = (start_x - half_width * perp_x, start_y - half_width * perp_y)
+    bottom_right = (start_x + half_width * perp_x, start_y + half_width * perp_y)
+    top_left = (target_x - half_width * perp_x, target_y - half_width * perp_y)
+    top_right = (target_x + half_width * perp_x, target_y + half_width * perp_y)
+
+    # Generate a random point inside the rectangle
+    random_length_factor = random.uniform(0, 1)  # Random position along the length
+    random_width_offset = random.uniform(-half_width, half_width)  # Random width offset
+
+    # Interpolate along the direction
+    random_x = start_x + random_length_factor * (target_x - start_x) + random_width_offset * perp_x
+    random_y = start_y + random_length_factor * (target_y - start_y) + random_width_offset * perp_y
     return random_x, random_y
     
