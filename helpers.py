@@ -171,8 +171,10 @@ def generate_random_adversarial_route(env, num_waypoints, times):
     # calculate waypoints on the curve
     trajectory = []
     traj = []
+    random_max_speed = random.uniform(5, 15)
+    random_acc = random.uniform(5, 15)
     for i in np.linspace(0, 1, num_waypoints):
-        speed = min(6.7, (i + 1) ** 15)
+        speed = min(random_max_speed, (i + 1) ** random_acc)
         point = curve.evaluate(i)
         trajectory.append([point[0][0], point[1][0], speed])
         traj.append([point[0][0], point[1][0]])
@@ -182,32 +184,6 @@ def generate_random_adversarial_route(env, num_waypoints, times):
         traj,
         np.rad2deg(get_polyline_yaw(traj)).reshape(-1, 1)
     ], axis=1)
-
-    xml_file = "scenarios/open_scenario/Catalogs/Trajectories/TrajectoryCatalog_inv.xosc"  # Replace with your actual file name
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
-
-    # Define new coordinates for each vertex
-    new_coordinates = traj
-
-    for i, vertex in enumerate(root.findall(".//Polyline/Vertex")):
-        # Update the time attribute
-        vertex.set("time", str(times[i]))  # Example: Set time based on index
-
-        # Find the WorldPosition element inside Position
-        world_position = vertex.find("./Position/WorldPosition")
-        if world_position is not None:
-            world_position.set("x", str(new_coordinates[i][0]))
-            world_position.set("y", str(new_coordinates[i][1]))
-
-
-    # Save the modified XML back to a file
-    modified_xml_file = "scenarios/open_scenario/Catalogs/Trajectories/TrajectoryCatalog.xosc"
-    tree.write(modified_xml_file, encoding="utf-8", xml_declaration=True)
-    modified_xml_file = "scenarios/open_scenario/Catalogs/Trajectories/TrajectoryCatalog_new.xosc"
-    print(tree.write(modified_xml_file, encoding="utf-8", xml_declaration=True))
-
-    print(f"Updated XML saved as {modified_xml_file}")
 
     return trajectory, ego_traj, ego_width, ego_length
 
@@ -336,7 +312,7 @@ def create_random_end_point(vehicle):
     epsilon = 0.1
     angle_offset = random.uniform(-math.pi / 2 + epsilon, math.pi / 2 - epsilon) # epsilon to not allow fully 90 degree
     random_angle = math.radians(transform.rotation.yaw) + angle_offset
-    distance = random.uniform(min_dist * max(0.5,math.cos(angle_offset)), max_dist * max(0.5,math.cos(angle_offset)))
+    distance = random.uniform(min_dist * max(0.5, math.cos(angle_offset)), max_dist * max(0.5,math.cos(angle_offset)))
 
     new_x = x + distance * math.cos(random_angle)
     new_y = y + distance * math.sin(random_angle)
