@@ -5,9 +5,12 @@ import os
 import time
 import io
 import math
+from TwoDimSSM import TTC_DRAC_MTTC
 import carla
 import bezier
 import numpy as np
+from TwoDimTTC import TTC
+import pandas as pd
 
 from cat.advgen.adv_generator import get_polyline_yaw
 import xml.etree.ElementTree as ET
@@ -306,7 +309,7 @@ def generate_even_timestamps(num_points, timespan):
 
 def create_random_end_point(vehicle):
     min_dist = 30
-    max_dist = 55
+    max_dist = 60
     transform = vehicle.get_transform()
     x, y = transform.location.x, transform.location.y
     epsilon = 0.1
@@ -359,4 +362,65 @@ def create_random_control_point(vehicle, target_x, target_y):
     random_x = start_x + random_length_factor * (target_x - start_x) + random_width_offset * perp_x
     random_y = start_y + random_length_factor * (target_y - start_y) + random_width_offset * perp_y
     return random_x, random_y
-    
+
+def get_vehicle_data(vehicle):
+    transform = vehicle.get_transform()
+    location = transform.location
+    rotation = transform.rotation
+    velocity = vehicle.get_velocity()
+    acceleration = vehicle.get_acceleration()
+    bbox = vehicle.bounding_box
+
+    # Normalize heading vector
+    yaw = np.deg2rad(rotation.yaw)
+    hx = np.cos(yaw)
+    hy = np.sin(yaw)
+
+    # Acceleration along heading direction
+    acc_vector = np.array([acceleration.x, acceleration.y])
+    heading_vector = np.array([hx, hy])
+    acc_along_heading = np.dot(acc_vector, heading_vector)
+
+    return {
+        'x': location.x,
+        'y': location.y,
+        'vx': velocity.x,
+        'vy': velocity.y,
+        'hx': hx,
+        'hy': hy,
+        'acc': acc_along_heading,
+        'length': bbox.extent.x * 2,
+        'width': bbox.extent.y * 2
+    }
+
+def calculate_ttc(vehicle1, vehicle2):
+    # Extract data from both vehicles
+    data1 = get_vehicle_data(vehicle1)
+    data2 = get_vehicle_data(vehicle2)
+
+    # Create DataFrame in required format
+    df = pd.DataFrame([{
+        'x_i': data1['x'],
+        'y_i': data1['y'],
+        'vx_i': data1['vx'],
+        'vy_i': data1['vy'],
+        'hx_i': data1['hx'],
+        'hy_i': data1['hy'],
+        'acc_i': data1['acc'],
+        'length_i': data1['length'],
+        'width_i': data1['width'],
+        'x_j': data2['x'],
+        'y_j': data2['y'],
+        'vx_j': data2['vx'],
+        'vy_j': data2['vy'],
+        'hx_j': data2['hx'],
+        'hy_j': data2['hy'],
+        'acc_j': data2['acc'],
+        'length_j': data2['length'],
+        'width_j': data2['width'],
+    }])
+
+    # TTC calculation
+    ttc_result = TTC_DRAC_MTTC(df)
+
+    return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']

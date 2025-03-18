@@ -7,6 +7,7 @@ import random
 import bezier
 import carla
 import gymnasium
+from helpers import calculate_ttc
 import numpy as np
 import optree
 import tensorflow as tf
@@ -161,7 +162,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         self._args = args
         self._model = VectorNet(args).to("cpu")
         self._model.load_state_dict(torch.load(model_path, map_location="cpu"))
-        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": []}
+        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": [], "drac": [], "mttc": []}
         self.parameters = {}
 
     def reset(
@@ -252,7 +253,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         return self.kpis
     
     def reset_kpis(self):
-        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": []}
+        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": [], "drac": [], "mttc": []}
     
     def get_ttc_as_dict(self):
         return {"ttc": self.kpis["ttc"]}
@@ -695,45 +696,46 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         for x, y, yaw in trajectory:
             # --- 1. Check closest road surface (yaw alignment) ---
             if tree_surface:
-                #TODO change here to not only take the closest point but check at least 5 or so to care for intersetions!!
-                surface_dist, idx_surface = tree_surface.query([x, y], k=5)
+                #TODO change here to not only take the closest point but check at least 5 or so to care for intersections!!
+                surface_dist, idx_surface = tree_surface.query([x, y], k=14)
                 yaw_diff = []
                 for dist, idx in zip(surface_dist, idx_surface):
-                    closest_surface_yaw = np.degrees(np.arctan2(road_surface["dir"][idx_surface][1], road_surface["dir"][idx_surface][0])) 
+                    closest_surface_yaw = np.degrees(np.arctan2(road_surface["dir"][idx][1], road_surface["dir"][idx][0])) 
                     yaw_diff.append(abs(yaw - closest_surface_yaw))
 
-                if any(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
-                    print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff:.2f} rad")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
-                    self.plot_stuff_traj(trajectory, idx)
+                if all(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
+                    print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff} rad")
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "yaw")
+                    #self.plot_stuff_traj(trajectory, idx1)
                     return False  
 
             # --- 2. Check distance to closest road edge ---
             if tree_edges:
                 edge_dist, _ = tree_edges.query([x, y], k=1)
 
-                if edge_dist < 0.8:  # Too close to the edge
+                if edge_dist < 0.5:  # Too close to the edge
                     print(f"Too close to road edge at ({x}, {y}), dist={edge_dist:.2f}")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
-                    self.plot_stuff_traj(trajectory, idx)
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
+                    #self.plot_stuff_traj(trajectory, idx1)
                     return False  
-                if surface_dist > edge_dist:
+                if surface_dist[0] > edge_dist + .2:
                     print(f"Closer to road edge than to road surface -> out of lane.")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
-                    self.plot_stuff_traj(trajectory, idx)
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
+                    #self.plot_stuff_traj(trajectory, idx1)
                     return False
 
-            # --- 3. Check if crossing solid road markings ---
+            # --- 3. Check if crossing solid roaFcKd markings ---
             if tree_markings:
                 marking_dist, idx_marking = tree_markings.query([x, y], k=1)
                 marking_type = road_markings["type"][idx_marking]
 
-                if marking_type in solid_line_types and marking_dist < 0.8:
+                if marking_type in solid_line_types and marking_dist < 0.5:
                     print(f"Crossed solid line at ({x}, {y}), dist={marking_dist:.2f}")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx)
-                    self.plot_stuff_traj(trajectory, idx)
+                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "line")
+                    #self.plot_stuff_traj(trajectory, idx1)
                     return False  
-
+        self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "passed")
+        #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
 
     def _get_state_features(self, ego_agent: str) -> tuple[dict, np.ndarray]:
@@ -1180,7 +1182,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             ego.bounding_box_extent.x
         except:
             return"""
-        self.kpis["ttc"].append(self.calculate_ttc_oldschool(ego, adv))
+        ttc, drac, mttc = calculate_ttc(ego,adv)
+        self.kpis["ttc"].append(ttc)
+        self.kpis["drac"].append(drac)
+        self.kpis["mttc"].append(mttc)
         #self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
         #TODO calc other KPIs also here
         #self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
