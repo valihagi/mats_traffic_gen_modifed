@@ -233,8 +233,8 @@ def main(args):
             print("USING Random DoE")
             obs, info = env.reset(options={
             })
-            #times = generate_timestamps(100, 80, .6, 3.5)
-            adv_traj, ego_traj, ego_width, ego_length = generate_random_adversarial_route(env, 80, times)
+            times = generate_timestamps(100, 80, .6, 3.5)
+            adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
             env = mats_gym.openscenario_env(
                 scenario_files="scenarios/open_scenario/test.xosc",
                 host=args.carla_host,

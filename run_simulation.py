@@ -43,7 +43,7 @@ from enum import IntEnum
 class WaitingTime(IntEnum):
     STARTTRIGGERSPEED = 1.5
     WAITFORAUTONOMOUS = 40
-    MAXSTARTDELAY = 150
+    MAXSTARTDELAY = 180
     MAXTIMESTEPS = 320
 
 
@@ -137,7 +137,7 @@ def joint_policy(agents):
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=10):
+                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=10, parameters=None):
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
         
     if scene is not None:
@@ -167,7 +167,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(650)):
+    for i in tqdm(range(700)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
@@ -246,8 +246,9 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         data = {
             "ego_traj": ego_traj,
             "adv_traj": adv_traj,
-            "kpis": info["kpis"],
-            "valid": valid
+            "kpis": info["kpis"].to_json(),
+            "valid": valid,
+            "parameters": parameters
         }
 
         with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
@@ -290,7 +291,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(700)):
+        for i in tqdm(range(750)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         

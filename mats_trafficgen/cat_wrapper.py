@@ -1183,9 +1183,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         except:
             return"""
         ttc, drac, mttc = calculate_ttc(ego,adv)
-        self.kpis["ttc"].append(ttc)
-        self.kpis["drac"].append(drac)
-        self.kpis["mttc"].append(mttc)
+        self.kpis["ttc"].append(ttc[0])
+        self.kpis["drac"].append(drac[0])
+        self.kpis["mttc"].append(mttc[0])
         #self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
         #TODO calc other KPIs also here
         #self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)

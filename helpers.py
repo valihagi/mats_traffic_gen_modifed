@@ -161,8 +161,8 @@ def generate_random_adversarial_route(env, num_waypoints, times):
     end_x, end_y = create_random_end_point(vehicle)
 
     # need two random control points to create a cubic bezier curve
-    x_ctrl_1, y_ctrl_1 = create_random_control_point(vehicle, end_x, end_y)
-    x_ctrl_2, y_ctrl_2 = create_random_control_point(vehicle, end_x, end_y)
+    x_ctrl_1, y_ctrl_1, length_factor1, width_offset1 = create_random_control_point(vehicle, end_x, end_y)
+    x_ctrl_2, y_ctrl_2, length_factor2, width_offset2 = create_random_control_point(vehicle, end_x, end_y)
 
     nodes = np.asfortranarray([
     [x_start, x_ctrl_1, x_ctrl_2, end_x],
@@ -188,7 +188,16 @@ def generate_random_adversarial_route(env, num_waypoints, times):
         np.rad2deg(get_polyline_yaw(traj)).reshape(-1, 1)
     ], axis=1)
 
-    return trajectory, ego_traj, ego_width, ego_length
+    parameters = {
+        "end_x" : end_x, 
+        "end_y" : end_y,
+        "length_factor1" : length_factor1, 
+        "width_offset1" : width_offset1,
+        "length_factor2" : length_factor2,
+        "width_offset2" : width_offset2
+    }
+
+    return trajectory, ego_traj, ego_width, ego_length, parameters
 
 
 def generate_parametrized_adversarial_route(env, num_waypoints, times):
@@ -361,7 +370,7 @@ def create_random_control_point(vehicle, target_x, target_y):
     # Interpolate along the direction
     random_x = start_x + random_length_factor * (target_x - start_x) + random_width_offset * perp_x
     random_y = start_y + random_length_factor * (target_y - start_y) + random_width_offset * perp_y
-    return random_x, random_y
+    return random_x, random_y, random_length_factor, random_width_offset
 
 def get_vehicle_data(vehicle):
     transform = vehicle.get_transform()
