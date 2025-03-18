@@ -1176,16 +1176,16 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         world.apply_settings(settings)
 
     def calculate_kpis(self, ego, adv):
-        try:
+        """try:
             ego.bounding_box_extent.x
         except:
-            return
-        self.kpis["ttc"].append(self.calculate_ttc(ego, adv))
-        self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
+            return"""
+        self.kpis["ttc"].append(self.calculate_ttc_oldschool(ego, adv))
+        #self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
         #TODO calc other KPIs also here
-        self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
+        #self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
         acc = adv.get_acceleration()
-        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+        #self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
 
     
     def get_aabb(self, vehicle):
@@ -1308,6 +1308,75 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             time += GLOBALS.TTC_TIMESTEP  # Increment time step
         
         return GLOBALS.DEFAULT_FOR_TTC  # No collision within max_time
+    
+    def calculate_ttc_oldschool(self, ego_vehicle, target_vehicle):
+ 
+        """
+ 
+        Calculate the Time to Collision (TTC) considering the heading and speed of the ego vehicle
+ 
+        and a target vehicle.
+ 
+
+ 
+        Args:
+ 
+            ego_vehicle (carla.Actor): The ego vehicle actor.
+ 
+            target_vehicle (carla.Actor): The target vehicle actor.
+ 
+
+ 
+        Returns:
+ 
+            float: The TTC value in timesteps, or None if no collision is predicted.
+ 
+        """
+ 
+        # Get the current locations of the vehicles
+ 
+        ego_location = ego_vehicle.get_transform().location
+ 
+        target_location = target_vehicle.get_transform().location
+ 
+
+ 
+        # Get the velocities of both vehicles
+ 
+        ego_velocity = ego_vehicle.get_velocity()
+ 
+        target_velocity = target_vehicle.get_velocity()
+ 
+
+ 
+        # Convert velocities to speeds
+ 
+        ego_speed = math.sqrt(ego_velocity.x**2 + ego_velocity.y**2 + ego_velocity.z**2)
+ 
+        target_speed = math.sqrt(target_velocity.x**2 + target_velocity.y**2 + target_velocity.z**2)
+ 
+
+ 
+        # If either vehicle is stationary, no collision can occur
+ 
+        if ego_speed == 0 and target_speed == 0:
+ 
+            return None
+ 
+
+ 
+        for i in range (100):
+ 
+            ego_projected = ego_location + ego_velocity * i
+ 
+            target_projected = target_location + target_velocity * i
+ 
+            distance =  ego_projected - target_projected
+ 
+            if distance.x < 2 and distance.y < 2:
+                return i
+ 
+        return None
     
     def calculate_time_headway(self, ego_vehicle, target_vehicle):
         """

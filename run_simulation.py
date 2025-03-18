@@ -167,7 +167,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(500)):
+    for i in tqdm(range(650)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
@@ -208,10 +208,6 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
-        """if counter % 40 == 0:
-            print("sleeping for testing")
-            time.sleep(2)
-            print("waking up again")"""
         time.sleep(.03)
         if env.coll:
             collision = True
@@ -241,16 +237,20 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     #--------------------return if we are not within a CAT run-----------------------
     if strategy != "cat":
         # calc metrics and return them / also save trajectories that where executed
-        ego_traj = env._trajectories["ego"]
+        ego_traj = env._trajectories["ego_vehicle"]
         adv_traj = env._trajectories["adversary"]
+        valid = "valid"
+        if all(abs(d["velocity_x"]) < .8 and abs(d["velocity_y"]) < .8 for d in ego_traj):
+            valid = "invalid"
 
         data = {
             "ego_traj": ego_traj,
             "adv_traj": adv_traj,
-            "kpis": info["kpis"]
+            "kpis": info["kpis"],
+            "valid": valid
         }
 
-        with open(f'data{iteration}.json', 'w') as f:
+        with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
             json.dump(data, f)
         return
     
@@ -269,8 +269,8 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
                 "adversarial": True
             })
 
-        gt_yaw = info["kpis"]["adv_yaw"]
-        gt_acc = info["kpis"]["adv_acc"]
+        #gt_yaw = info["kpis"]["adv_yaw"]
+        #gt_acc = info["kpis"]["adv_acc"]
 
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
@@ -290,7 +290,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(550)):
+        for i in tqdm(range(700)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -364,7 +364,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
             "kpis": info["kpis"]
         }
 
-        with open(f'data{iteration}.json', 'w') as f:
+        with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
             json.dump(data, f)
         return
 
@@ -466,7 +466,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
             "kpis": info["kpis"]
         }
 
-        with open(f'data{iteration}.json', 'w') as f:
+        with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
             json.dump(data, f)
 
         #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")

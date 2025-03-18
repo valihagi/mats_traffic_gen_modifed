@@ -158,8 +158,8 @@ def generate_random_adversarial_route(env, num_waypoints, times):
     end_x, end_y = create_random_end_point(vehicle)
 
     # need two random control points to create a cubic bezier curve
-    x_ctrl_1, y_ctrl_1 = create_random_control_point(vehicle)
-    x_ctrl_2, y_ctrl_2 = create_random_control_point(vehicle)
+    x_ctrl_1, y_ctrl_1 = create_random_control_point(vehicle, end_x, end_y)
+    x_ctrl_2, y_ctrl_2 = create_random_control_point(vehicle, end_x, end_y)
 
     nodes = np.asfortranarray([
     [x_start, x_ctrl_1, x_ctrl_2, end_x],
@@ -344,7 +344,7 @@ def create_random_end_point(vehicle):
     return new_x, new_y
 
 
-def create_random_control_point(vehicle):
+def create_random_control_point(vehicle, target_x, target_y):
     width=30
     transform = vehicle.get_transform()
     yaw = math.radians(transform.rotation.yaw)

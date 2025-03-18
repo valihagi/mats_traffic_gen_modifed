@@ -41,12 +41,12 @@ from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "thirsty_goldberg"
-bridge_container_name = "awesome_herschel"
+autoware_container_name = "silly_robinson"
+bridge_container_name = "sweet_swartz"
 
-autoware_terminal = "/dev/pts/8"
-bridge_terminal = "/dev/pts/9"
-default_terminal = "/dev/pts/10"
+autoware_terminal = "/dev/pts/6"
+bridge_terminal = "/dev/pts/7"
+default_terminal = "/dev/pts/8"
 
 
 """
@@ -54,7 +54,7 @@ This example shows how to use the CarlaVisualizationWrapper to create visualizat
 inside the CARLA simulator. The visualization is done by adding a callback to the wrapper.
 """
 
-NUM_EPISODES = 10
+NUM_EPISODES = 20
 
 
 def compute_WD(gt, other):
@@ -295,7 +295,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--OV_traj_num', type=int, default=64)
     parser.add_argument('--AV_traj_num', type=int, default=1)
-    parser.add_argument('--carla-host', type=str, default="172.24.128.1")
+    parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
     parser.add_argument('--strategy', type=str, default="random")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
