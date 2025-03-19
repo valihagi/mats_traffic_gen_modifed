@@ -654,8 +654,50 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         adv_traj = np.concatenate([adv_path[:, ::-1], adv_vel, adv_yaw], axis=1)
         return adv_traj_id, adv_traj
 
+    def filter_road_graph_for_odd_checking(self, roadgraph_data):
+        xyz = roadgraph_data["roadgraph_samples/xyz"]
+        direction = roadgraph_data["roadgraph_samples/dir"]
+        rtype = roadgraph_data["roadgraph_samples/type"].squeeze()
+        valid = roadgraph_data["roadgraph_samples/valid"]
+        rid = roadgraph_data["roadgraph_samples/id"]
+
+        # Masks for filtering by type
+        mask_surface = (rtype == 2)
+        mask_edges = np.isin(rtype, [15, 16])
+        mask_markings = np.isin(rtype, [7, 8, 9, 10, 11, 12, 13])
+
+        # Create the three dictionaries
+        road_surface = {
+            "xyz": xyz[mask_surface],
+            "dir": direction[mask_surface],
+            "type": rtype[mask_surface],
+            "valid": valid[mask_surface],
+            "id": rid[mask_surface]
+        }
+
+        road_edges = {
+            "xyz": xyz[mask_edges],
+            "dir": direction[mask_edges],
+            "type": rtype[mask_edges],
+            "valid": valid[mask_edges],
+            "id": rid[mask_edges]
+        }
+
+        road_markings = {
+            "xyz": xyz[mask_markings],
+            "dir": direction[mask_markings],
+            "type": rtype[mask_markings],
+            "valid": valid[mask_markings],
+            "id": rid[mask_markings]
+        }
+
+        self.road_surface = road_surface
+        self.road_edges = road_edges
+        self.road_markings = road_markings
+
     def _get_features(self):
         roadgraph_features = self._get_roadgraph_features(self._max_samples)
+        self.filter_road_graph_for_odd_checking(roadgraph_features)
         state_features, ego_route = self._get_state_features("ego_vehicle")
         dynamic_map_features = self._get_dynamic_map_features()
 
