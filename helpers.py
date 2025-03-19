@@ -188,14 +188,7 @@ def generate_random_adversarial_route(env, num_waypoints, times):
         np.rad2deg(get_polyline_yaw(traj)).reshape(-1, 1)
     ], axis=1)
 
-    parameters = {
-        "end_x" : end_x, 
-        "end_y" : end_y,
-        "length_factor1" : length_factor1, 
-        "width_offset1" : width_offset1,
-        "length_factor2" : length_factor2,
-        "width_offset2" : width_offset2
-    }
+    parameters = [end_x, end_y,length_factor1, width_offset1,length_factor2,width_offset2]
 
     return trajectory, ego_traj, ego_width, ego_length, parameters
 

@@ -54,7 +54,7 @@ This example shows how to use the CarlaVisualizationWrapper to create visualizat
 inside the CARLA simulator. The visualization is done by adding a callback to the wrapper.
 """
 
-NUM_EPISODES = 20
+NUM_EPISODES = 350
 
 
 def compute_WD(gt, other):
@@ -231,8 +231,15 @@ def main(args):
         traj = None
         if strategy == "random":
             print("USING Random DoE")
-            obs, info = env.reset(options={
-            })
+            for i in range(10):
+                try:
+                    obs, info = env.reset(options={
+                    })
+                    print("Reseting the environment")
+                    break
+                except:
+                    print("Carla seems to be down, taking a short timeout and trying again...")
+                    time.sleep(120)
             times = generate_timestamps(100, 80, .6, 3.5)
             adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
             env = mats_gym.openscenario_env(
@@ -284,7 +291,8 @@ def main(args):
                        adv_path=adv_traj,
                        pose_publisher=pose_publisher,
                        iteration=e,
-                       autoware_target_point= autoware_target_point)
+                       autoware_target_point= autoware_target_point,
+                       parameters=parameters)
         
         #get KPIS
 

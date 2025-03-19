@@ -246,7 +246,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         data = {
             "ego_traj": ego_traj,
             "adv_traj": adv_traj,
-            "kpis": info["kpis"].to_json(),
+            "kpis": info["kpis"],
             "valid": valid,
             "parameters": parameters
         }
@@ -263,12 +263,11 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
                 "scene": scene,
                 "adversarial": True
             })
+            print("Reseting the environment")
+            break
         except:
-            subprocess.run(["bash", "/work/Valentin_dev/mats-trafficgen-main/Carla/CarlaUE4.sh"], check=True)
-            obs, info = env.reset(options={
-                "scene": scene,
-                "adversarial": True
-            })
+            print("Carla seems to be down, taking a short timeout and trying again...")
+            time.sleep(120)
 
         #gt_yaw = info["kpis"]["adv_yaw"]
         #gt_acc = info["kpis"]["adv_acc"]
