@@ -430,6 +430,63 @@ def calculate_ttc(vehicle1, vehicle2):
 
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
 
+def plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, string):
+    plt.figure(figsize=(10, 10))
+
+    # Plot road surface points (e.g., gray)
+    plt.scatter(surface_xyz[:, 0], surface_xyz[:, 1], c='gray', s=2, label='Road Surface')
+
+    # Only plot every Nth arrow for road surface directions
+    N = 20  # Change this depending on density
+    sampled_idx = np.arange(0, surface_xyz.shape[0], N)
+    sampled_surface_xyz = surface_xyz[sampled_idx]
+    sampled_surface_dir = surface_dir[sampled_idx, :2]
+    
+    arrow_scale = 5.0
+    plt.quiver(
+        sampled_surface_xyz[:, 0], sampled_surface_xyz[:, 1], 
+        sampled_surface_dir[:, 0], sampled_surface_dir[:, 1], 
+        angles='xy', scale_units='xy', scale=1 / arrow_scale, color='black', width=0.002, alpha=0.7, label='Lane Direction'
+    )
+    
+    # Plot road edges (e.g., red)
+    plt.scatter(edges_xyz[:, 0], edges_xyz[:, 1], c='red', s=5, label='Road Edges')
+    
+    # Plot road markings (e.g., blue)
+    plt.scatter(markings_xyz[:, 0], markings_xyz[:, 1], c='blue', s=3, label='Road Markings')
+    
+    # Plot trajectory as a line (e.g., green)
+    traj_xy = trajectory[:, :2]  # Ignore yaw/direction for plotting
+    traj_yaw_deg = trajectory[:, 2]
+    plt.plot(traj_xy[:, 0], traj_xy[:, 1], c='green', linewidth=2, label='Trajectory')
+
+    # Plot trajectory headings as arrows
+    traj_yaw_rad = np.deg2rad(traj_yaw_deg)
+    arrow_length = 1.5
+    dx = np.cos(traj_yaw_rad) * arrow_length
+    dy = np.sin(traj_yaw_rad) * arrow_length
+
+    # Downsample the trajectory points for better readability
+    traj_sampled_idx = np.arange(0, len(traj_xy), N)
+    sampled_traj_xy = traj_xy[traj_sampled_idx]
+    sampled_dx = dx[traj_sampled_idx]
+    sampled_dy = dy[traj_sampled_idx]
+    
+    plt.quiver(sampled_traj_xy[:, 0], sampled_traj_xy[:, 1], sampled_dx, sampled_dy, 
+            angles='xy', scale_units='xy', scale=1, color='green', width=0.002, alpha=0.9, label='Trajectory Direction')
+
+
+    
+    plt.legend()
+    plt.axis('equal')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Roadgraph and Trajectory Visualization')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(f"/workspace/random_results/plots_old/{string}_plt{idx}.png")
+    plt.close()
+
 def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, string):
     """
     Plots the given trajectory against Scenic's Network information.

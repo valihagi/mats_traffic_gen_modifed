@@ -7,7 +7,7 @@ import random
 import bezier
 import carla
 import gymnasium
-from helpers import calculate_ttc, plot_trajectory_vs_network
+from helpers import calculate_ttc, plot_stuff, plot_trajectory_vs_network
 import numpy as np
 import optree
 import tensorflow as tf
@@ -750,7 +750,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if all(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
                     print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff} rad")
-                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "yaw")
+                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "yaw")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
 
@@ -760,12 +760,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if edge_dist < 0.5:  # Too close to the edge
                     print(f"Too close to road edge at ({x}, {y}), dist={edge_dist:.2f}")
-                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
+                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "edge")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
                 if surface_dist[0] > edge_dist + .2:
                     print(f"Closer to road edge than to road surface -> out of lane.")
-                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
+                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "edge")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False
 
@@ -776,10 +776,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if marking_type in solid_line_types and marking_dist < 0.5:
                     print(f"Crossed solid line at ({x}, {y}), dist={marking_dist:.2f}")
-                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "line")
+                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "line")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
-        #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "passed")
+        plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "passed")
         #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
     
