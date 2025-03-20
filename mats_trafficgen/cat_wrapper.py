@@ -851,12 +851,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         if invalid_points:
             print(f"Trajectory INVALID: {len(invalid_points)} violations found.")
             # 5. Plot results
-            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid_trajectory_debug")
+            plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid_trajectory_debug")
             return False  
         else:
             print("Trajectory is VALID!")
             # 5. Plot results
-            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
+            plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
             return True 
 
     # Helper function to normalize yaw differences

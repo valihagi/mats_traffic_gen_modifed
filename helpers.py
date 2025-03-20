@@ -430,7 +430,7 @@ def calculate_ttc(vehicle1, vehicle2):
 
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
 
-def plot_trajectory_vs_network(self, trajectory, network, invalid_points, idx, invalid_reasons, string):
+def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, string):
     """
     Plots the given trajectory against Scenic's Network information.
     
@@ -459,14 +459,14 @@ def plot_trajectory_vs_network(self, trajectory, network, invalid_points, idx, i
 
     # --- 2. Plot all lanes and centerlines ---
     for lane in network.lanes:
-        if lane.polygon.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 80:
-            # Plot lane boundaries
-            x, y = lane.polygon.exterior.xy
-            plt.plot(x, y, 'black', linewidth=1, alpha=0.7)  # Lane borders
+        #if lane.polygon.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 80:
+        # Plot lane boundaries
+        x, y = lane.polygon.exterior.xy
+        plt.plot(x, y, 'black', linewidth=1, alpha=0.7)  # Lane borders
 
-            # Plot lane centerline
-            centerline_x, centerline_y = zip(*lane.centerline.points)
-            plt.plot(centerline_x, centerline_y, 'blue', linestyle='dashed', linewidth=1, alpha=0.6, label="Lane Centerline" if lane == network.lanes[0] else "")
+        # Plot lane centerline
+        centerline_x, centerline_y = zip(*lane.centerline.points)
+        plt.plot(centerline_x, centerline_y, 'blue', linestyle='dashed', linewidth=1, alpha=0.6, label="Lane Centerline" if lane == network.lanes[0] else "")
 
     # --- 3. Plot trajectory points ---
     traj_x, traj_y, _ = zip(*trajectory)
@@ -479,6 +479,7 @@ def plot_trajectory_vs_network(self, trajectory, network, invalid_points, idx, i
             plt.scatter(x, y, c='red', s=50, marker='x')
             plt.text(x, y, "", fontsize=9, color='red')
 
+
     # --- 5. Formatting & Save ---
     plt.axis("equal")
     plt.xlabel("X")
@@ -487,8 +488,9 @@ def plot_trajectory_vs_network(self, trajectory, network, invalid_points, idx, i
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(f"{string}_network_plot{idx}.png")
+    plt.savefig(f"/workspace/random_results/plots/{string}_network_plot{idx}.png")
     plt.show()
+    plt.close()
 
 def save_log_file(env, info, parameters, iteration, in_odd=True):
     filename = f'/workspace/random_results/succesfull_runs/data{iteration}.json'
