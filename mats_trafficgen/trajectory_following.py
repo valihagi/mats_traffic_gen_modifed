@@ -32,7 +32,11 @@ class TrajectoryFollowingAgent(BasicAgent):
 
     def run_step(self):
         if self._current >= len(self.path):
-            return carla.VehicleControl()
+            ctrl = carla.VehicleControl()
+            ctrl.throttle = 0
+            ctrl.brake = 1
+            ctrl.steer = 0
+            return ctrl
 
         target_v, target_loc = self.velocities[self._current], self.path[self._current]
         tf = carla.Transform(target_loc, carla.Rotation())

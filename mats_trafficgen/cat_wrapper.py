@@ -192,6 +192,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             self._network = Network.fromFile(f"scenarios/maps/{town}.xodr", useCache=True)
             self._lane_ids = []
             self.roadgraph = self._get_roadgraph("ego_vehicle")
+            self.filter_road_graph_for_odd_checking(self._get_roadgraph_features(self._max_samples))
 
         if options.get("load", False):
             data = self._load()
@@ -747,7 +748,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if all(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
                     print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff} rad")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "yaw")
+                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "yaw")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
 
@@ -757,12 +758,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if edge_dist < 0.5:  # Too close to the edge
                     print(f"Too close to road edge at ({x}, {y}), dist={edge_dist:.2f}")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
+                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
                 if surface_dist[0] > edge_dist + .2:
                     print(f"Closer to road edge than to road surface -> out of lane.")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
+                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "edge")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False
 
@@ -773,10 +774,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if marking_type in solid_line_types and marking_dist < 0.5:
                     print(f"Crossed solid line at ({x}, {y}), dist={marking_dist:.2f}")
-                    self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "line")
+                    #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "line")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
-        self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "passed")
+        #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "passed")
         #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
 

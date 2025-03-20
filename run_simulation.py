@@ -27,7 +27,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_msgs.msg import Header
 import json
 from pose_publisher import PosePublisher
-from helpers import run_docker_command
+from helpers import run_docker_command, save_log_file
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
@@ -237,22 +237,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     #--------------------return if we are not within a CAT run-----------------------
     if strategy != "cat":
         # calc metrics and return them / also save trajectories that where executed
-        ego_traj = env._trajectories["ego_vehicle"]
-        adv_traj = env._trajectories["adversary"]
-        valid = "valid"
-        if all(abs(d["velocity_x"]) < .8 and abs(d["velocity_y"]) < .8 for d in ego_traj):
-            valid = "invalid"
-
-        data = {
-            "ego_traj": ego_traj,
-            "adv_traj": adv_traj,
-            "kpis": info["kpis"],
-            "valid": valid,
-            "parameters": parameters
-        }
-
-        with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
-            json.dump(data, f)
+        save_log_file(env, info, parameters, iteration)
         return
     
     for iteration in range(num_iterations):
@@ -267,7 +252,7 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
             break
         except:
             print("Carla seems to be down, taking a short timeout and trying again...")
-            time.sleep(120)
+            time.sleep(60)
 
         #gt_yaw = info["kpis"]["adv_yaw"]
         #gt_acc = info["kpis"]["adv_acc"]

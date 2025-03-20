@@ -28,7 +28,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_msgs.msg import Header
 from pose_publisher import PosePublisher
-from helpers import generate_even_timestamps, generate_parametrized_adversarial_route, generate_random_adversarial_route, generate_timestamps, run_docker_command, visualize_traj
+from helpers import generate_even_timestamps, generate_parametrized_adversarial_route, generate_random_adversarial_route, generate_timestamps, run_docker_command, save_log_file, visualize_traj
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
@@ -54,7 +54,7 @@ This example shows how to use the CarlaVisualizationWrapper to create visualizat
 inside the CARLA simulator. The visualization is done by adding a callback to the wrapper.
 """
 
-NUM_EPISODES = 350
+NUM_EPISODES = 200
 
 
 def compute_WD(gt, other):
@@ -226,23 +226,28 @@ def main(args):
                     
                     #get KPIS
             return
-
-    for e in range(NUM_EPISODES):
+    ran_counter = 0
+    iteration_counter = 0
+    already_reset = False
+    while(ran_counter < NUM_EPISODES):
+        iteration_counter += 1
         traj = None
         if strategy == "random":
             print("USING Random DoE")
-            for i in range(10):
-                try:
-                    obs, info = env.reset(options={
-                    })
-                    print("Reseting the environment")
-                    break
-                except:
-                    print("Carla seems to be down, taking a short timeout and trying again...")
-                    time.sleep(120)
+            if not already_reset:
+                for i in range(10):
+                    try:
+                        obs, info = env.reset(options={
+                        })
+                        print("Reseting the environment")
+                        break
+                    except:
+                        print("Carla seems to be down, taking a short timeout and trying again...")
+                        time.sleep(60)
+            already_reset = False
             times = generate_timestamps(100, 80, .6, 3.5)
             adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
-            env = mats_gym.openscenario_env(
+            """env = mats_gym.openscenario_env(
                 scenario_files="scenarios/open_scenario/test.xosc",
                 host=args.carla_host,
                 port=args.carla_port,
@@ -258,10 +263,17 @@ def main(args):
                 ego_agent="ego_vehicle",
                 adv_agents="adversary",
             )
-            env.agents.append('adversary')
+            env.agents.append('adversary')"""
             
-            obs, info = env.reset(options={
-            })
+            """obs, info = env.reset(options={
+            })"""
+            #check ego traj
+            if not env.check_on_roadgraph(ego_traj, iteration_counter):
+                print("Created trajectory is not on the roadgraph and will therefore be skipped!")
+                already_reset = True
+                save_log_file(env, info, parameters, iteration_counter, in_odd=False)
+                continue
+            ran_counter += 1
             visualize_traj(
                 ego_traj[4:-4, 0],
                 ego_traj[4:-4, 1],
@@ -290,7 +302,7 @@ def main(args):
                        strategy=strategy,
                        adv_path=adv_traj,
                        pose_publisher=pose_publisher,
-                       iteration=e,
+                       iteration=iteration_counter,
                        autoware_target_point= autoware_target_point,
                        parameters=parameters)
         

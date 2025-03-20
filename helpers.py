@@ -15,6 +15,7 @@ import pandas as pd
 from cat.advgen.adv_generator import get_polyline_yaw
 import xml.etree.ElementTree as ET
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+import json
 
 
 def run_docker_command(container_name, command, output_dest):
@@ -426,3 +427,29 @@ def calculate_ttc(vehicle1, vehicle2):
     ttc_result = TTC_DRAC_MTTC(df)
 
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
+
+def save_log_file(env, info, parameters, iteration, in_odd=True):
+    filename = f'/workspace/random_results/succesfull_runs/data{iteration}.json'
+    if in_odd:
+        ego_traj = env._trajectories["ego_vehicle"]
+        adv_traj = env._trajectories["adversary"]
+        valid = "valid"
+        if all(abs(d["velocity_x"]) < .8 and abs(d["velocity_y"]) < .8 for d in ego_traj):
+            valid = "invalid"
+            filename = f'/workspace/random_results/aw_didnt_start/data{iteration}.json'
+    else:
+        ego_traj = []
+        adv_traj = []
+        valid = "invalid by odd"
+        filename = f'/workspace/random_results/not_in_odd/data{iteration}.json'
+
+    data = {
+        "ego_traj": ego_traj,
+        "adv_traj": adv_traj,
+        "kpis": info["kpis"],
+        "valid": valid,
+        "parameters": parameters
+    }
+
+    with open(filename, 'w') as f:
+        json.dump(data, f)
