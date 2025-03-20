@@ -11,11 +11,13 @@ import bezier
 import numpy as np
 from TwoDimTTC import TTC
 import pandas as pd
+import shapely.geometry
 
 from cat.advgen.adv_generator import get_polyline_yaw
 import xml.etree.ElementTree as ET
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 import json
+from matplotlib import pyplot as plt
 
 
 def run_docker_command(container_name, command, output_dest):
@@ -427,6 +429,66 @@ def calculate_ttc(vehicle1, vehicle2):
     ttc_result = TTC_DRAC_MTTC(df)
 
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
+
+def plot_trajectory_vs_network(self, trajectory, network, invalid_points, idx, invalid_reasons, string):
+    """
+    Plots the given trajectory against Scenic's Network information.
+    
+    Args:
+        trajectory (list of tuples): [(x, y, yaw), ...] points.
+        network (scenic.core.network.Network): Scenic network object.
+        invalid_points (list of tuples): [(x, y), ...] invalid trajectory points.
+        idx (int): Index for saving plots.
+        string (str): File name identifier.
+    """
+
+    plt.figure(figsize=(10, 10))
+
+    # --- 1. Plot drivable area (MultiPolygon support) ---
+    drivable_area = network.drivableRegion.polygons  # ✅ Corrected from `drivableAreaPolygon`
+    
+    """if isinstance(drivable_area, shapely.geometry.MultiPolygon):
+        for polygon in drivable_area.geoms:  # Iterate over each polygon
+            #if polygon.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 80:
+            x, y = polygon.exterior.xy
+            plt.fill(x, y, color='red', alpha=0.5, label="Drivable Area" if 'Drivable Area' not in plt.gca().get_legend_handles_labels()[1] else "")
+    elif isinstance(drivable_area, shapely.geometry.Polygon):
+        #if drivable_area.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 80:
+        x, y = drivable_area.exterior.xy
+        plt.fill(x, y, color='red', alpha=0.5, label="Drivable Area")"""
+
+    # --- 2. Plot all lanes and centerlines ---
+    for lane in network.lanes:
+        if lane.polygon.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 80:
+            # Plot lane boundaries
+            x, y = lane.polygon.exterior.xy
+            plt.plot(x, y, 'black', linewidth=1, alpha=0.7)  # Lane borders
+
+            # Plot lane centerline
+            centerline_x, centerline_y = zip(*lane.centerline.points)
+            plt.plot(centerline_x, centerline_y, 'blue', linestyle='dashed', linewidth=1, alpha=0.6, label="Lane Centerline" if lane == network.lanes[0] else "")
+
+    # --- 3. Plot trajectory points ---
+    traj_x, traj_y, _ = zip(*trajectory)
+    plt.scatter(traj_x, traj_y, c='green', s=20, label="Valid Trajectory")
+
+    # --- 4. Highlight invalid trajectory points ---
+    if invalid_points:
+        invalid_x, invalid_y = zip(*invalid_points)
+        for (x, y, reason) in zip(invalid_x, invalid_y, invalid_reasons):
+            plt.scatter(x, y, c='red', s=50, marker='x')
+            plt.text(x, y, "", fontsize=9, color='red')
+
+    # --- 5. Formatting & Save ---
+    plt.axis("equal")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.title("Trajectory vs Scenic Network")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(f"{string}_network_plot{idx}.png")
+    plt.show()
 
 def save_log_file(env, info, parameters, iteration, in_odd=True):
     filename = f'/workspace/random_results/succesfull_runs/data{iteration}.json'

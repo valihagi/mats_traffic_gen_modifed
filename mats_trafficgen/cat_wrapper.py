@@ -7,7 +7,7 @@ import random
 import bezier
 import carla
 import gymnasium
-from helpers import calculate_ttc
+from helpers import calculate_ttc, plot_trajectory_vs_network
 import numpy as np
 import optree
 import tensorflow as tf
@@ -22,6 +22,8 @@ from cat.advgen.adv_generator import get_polyline_yaw, Intersect, get_polyline_v
 from cat.advgen.adv_utils import process_data
 from cat.advgen.modeling.vectornet import VectorNet
 from scipy.spatial import cKDTree
+import shapely.geometry
+from scenic.core.vectors import Vector
 
 
 class RoadGraphTypes(enum.Enum):
@@ -718,7 +720,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         features["state/objects_of_interest"] = features['state/tracks_to_predict'].copy()
         return features, ego_route
     
-    def check_on_roadgraph(self, trajectory, idx):
+    def check_on_roadgraph_old(self, trajectory, idx):
         # Define solid line types
         solid_line_types = {7, 8, 9, 10, 11, 12}
 
@@ -767,7 +769,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False
 
-            # --- 3. Check if crossing solid roaFcKd markings ---
+            # --- 3. Check if crossing solid road markings ---
             if tree_markings:
                 marking_dist, idx_marking = tree_markings.query([x, y], k=1)
                 marking_type = road_markings["type"][idx_marking]
@@ -780,6 +782,87 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         #self.plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx1, "passed")
         #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
+    
+    def check_on_roadgraph(self, trajectory, idx):
+        """
+        Checks if the given trajectory is valid based on the Scenic Network object and plots the results.
+
+        Args:
+            trajectory (list of tuples): List of (x, y, yaw) points.
+            network (scenic.core.network.Network): Scenic network object.
+
+        Returns:
+            bool: True if trajectory is valid, False otherwise.
+        """
+        network = self._network
+        invalid_points = []
+        invalid_reasons = []
+
+        for x, y, yaw in trajectory:
+            point = shapely.geometry.Point(x, y)
+
+            # 1. Check if point is within the overall drivable area
+            if not network.drivableRegion.containsPoint(point):
+                print(f"Point ({x}, {y}) is OUTSIDE the drivable area.")
+                invalid_points.append((x, y))
+                invalid_reasons.append("Drivable Area")
+                continue  # Move to next point
+
+            candidate_lanes = []
+            yaw_differences = []
+
+            # 2. Check which lanes contain this point
+            for lane in network.lanes:
+                if lane.containsPoint(point):
+                    candidate_lanes.append(lane)
+
+            if not candidate_lanes:
+                print(f"Point ({x}, {y}) is NOT inside any lane polygon.")
+                invalid_points.append((x, y))
+                invalid_reasons.append("Lane Polygon")
+                continue  # Move to next point
+
+            # 3. Compute yaw difference for each valid lane
+            for lane in candidate_lanes:
+                if len(candidate_lanes) > 1:
+                    var = 0
+                # Get nearest point on lane centerline
+                nearest_pt = lane.centerline.lineString.interpolate(
+                    lane.centerline.lineString.project(point)
+                )
+
+                # Compute expected lane direction
+                lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) - 1.57
+
+                lane_yaw = np.degrees(lane_yaw_rad) 
+
+                # Compute yaw difference and store
+                yaw_diff = abs(self.wrap_to_180(yaw - lane_yaw))
+                yaw_differences.append(yaw_diff)
+
+            # 4. Check if at least one lane has a valid yaw alignment
+            if all(diff > 80 for diff in yaw_differences):
+                print(f"Yaw misalignment at ({x}, {y}), min diff={min(yaw_differences):.2f}°")
+                invalid_points.append((x, y))
+                invalid_reasons.append("Yaw Misalignment")
+                continue  # Move to next point
+
+
+        if invalid_points:
+            print(f"Trajectory INVALID: {len(invalid_points)} violations found.")
+            # 5. Plot results
+            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid_trajectory_debug")
+            return False  
+        else:
+            print("Trajectory is VALID!")
+            # 5. Plot results
+            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
+            return True 
+
+    # Helper function to normalize yaw differences
+    def wrap_to_180(self, angle):
+        """Normalize an angle to the range [-180, 180] degrees."""
+        return (angle + 180) % 360 - 180
 
     def _get_state_features(self, ego_agent: str) -> tuple[dict, np.ndarray]:
         state_features = {
