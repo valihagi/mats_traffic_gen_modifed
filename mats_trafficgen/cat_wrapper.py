@@ -783,7 +783,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
     
-    def check_on_roadgraph(self, trajectory, idx):
+    def check_on_roadgraph(self, trajectory_original, idx):
         """
         Checks if the given trajectory is valid based on the Scenic Network object and plots the results.
 
@@ -794,6 +794,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             bool: True if trajectory is valid, False otherwise.
         """
+        trajectory = [(x, -y, z) for x, y, z in trajectory_original]
         network = self._network
         invalid_points = []
         invalid_reasons = []

@@ -516,14 +516,14 @@ def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid
 
     # --- 2. Plot all lanes and centerlines ---
     for lane in network.lanes:
-        #if lane.polygon.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 80:
-        # Plot lane boundaries
-        x, y = lane.polygon.exterior.xy
-        plt.plot(x, y, 'black', linewidth=1, alpha=0.7)  # Lane borders
+        if lane.polygon.centroid.distance(shapely.geometry.Point(trajectory[0][0], trajectory[0][1])) < 100:
+            # Plot lane boundaries
+            x, y = lane.polygon.exterior.xy
+            plt.plot(x, y, 'black', linewidth=1, alpha=0.7)  # Lane borders
 
-        # Plot lane centerline
-        centerline_x, centerline_y = zip(*lane.centerline.points)
-        plt.plot(centerline_x, centerline_y, 'blue', linestyle='dashed', linewidth=1, alpha=0.6, label="Lane Centerline" if lane == network.lanes[0] else "")
+            # Plot lane centerline
+            centerline_x, centerline_y = zip(*lane.centerline.points)
+            plt.plot(centerline_x, centerline_y, 'blue', linestyle='dashed', linewidth=1, alpha=0.6, label="Lane Centerline" if lane == network.lanes[0] else "")
 
     # --- 3. Plot trajectory points ---
     traj_x, traj_y, _ = zip(*trajectory)

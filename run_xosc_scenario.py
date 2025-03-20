@@ -268,6 +268,7 @@ def main(args):
             """obs, info = env.reset(options={
             })"""
             #check ego traj
+            env.check_on_roadgraph_old(ego_traj, iteration_counter)
             if not env.check_on_roadgraph(ego_traj, iteration_counter):
                 print("Created trajectory is not on the roadgraph and will therefore be skipped!")
                 already_reset = True
