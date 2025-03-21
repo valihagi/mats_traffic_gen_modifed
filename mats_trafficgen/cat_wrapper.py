@@ -794,7 +794,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             bool: True if trajectory is valid, False otherwise.
         """
-        trajectory = [(x, -y, z) for x, y, z in trajectory_original]
+        trajectory = [(x, -y, -z) for x, y, z in trajectory_original]
         network = self._network
         invalid_points = []
         invalid_reasons = []
@@ -833,7 +833,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 )
 
                 # Compute expected lane direction
-                lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) - 1.57
+                lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) + 1.57
 
                 lane_yaw = np.degrees(lane_yaw_rad) 
 
