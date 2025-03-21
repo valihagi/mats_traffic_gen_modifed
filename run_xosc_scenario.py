@@ -43,6 +43,7 @@ import subprocess
 
 autoware_container_name = "silly_robinson"
 bridge_container_name = "sweet_swartz"
+carla_container_name = "vigorous_germain"
 
 autoware_terminal = "/dev/pts/6"
 bridge_terminal = "/dev/pts/7"
@@ -212,12 +213,14 @@ def main(args):
 
                     run_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
+                       carla_container_name=carla_container_name,
                        default_terminal=default_terminal,
                        autoware_terminal=autoware_terminal,
                        bridge_terminal=bridge_terminal,
                        env=env,
                        args=args,
                        scene=None,
+                       iteration=iteration_counter,
                        target_point=target_point,
                        strategy=strategy,
                        adv_path=adv_traj,
@@ -268,7 +271,7 @@ def main(args):
             """obs, info = env.reset(options={
             })"""
             #check ego traj
-            env.check_on_roadgraph_old(ego_traj, iteration_counter)
+            #env.check_on_roadgraph_old(ego_traj, iteration_counter)
             if not env.check_on_roadgraph(ego_traj, iteration_counter):
                 print("Created trajectory is not on the roadgraph and will therefore be skipped!")
                 already_reset = True
@@ -293,6 +296,7 @@ def main(args):
 
         run_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
+                       carla_container_name=carla_container_name,
                        default_terminal=default_terminal,
                        autoware_terminal=autoware_terminal,
                        bridge_terminal=bridge_terminal,
@@ -303,7 +307,7 @@ def main(args):
                        strategy=strategy,
                        adv_path=adv_traj,
                        pose_publisher=pose_publisher,
-                       iteration=iteration_counter,
+                       iteration=ran_counter,
                        autoware_target_point= autoware_target_point,
                        parameters=parameters)
         

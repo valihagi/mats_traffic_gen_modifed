@@ -43,6 +43,7 @@ import subprocess
 
 autoware_container_name = "pensive_curie"
 bridge_container_name = "pensive_hugle"
+carla_container_name = ""
 
 autoware_terminal = "/dev/pts/14"
 bridge_terminal = "/dev/pts/15"
@@ -151,6 +152,7 @@ def main(args):
 
                     run_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
+                       carla_container_name=carla_container_name,
                        default_terminal=default_terminal,
                        autoware_terminal=autoware_terminal,
                        bridge_terminal=bridge_terminal,

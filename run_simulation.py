@@ -136,7 +136,7 @@ def joint_policy(agents):
                 actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
         return actions
 
-def run_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
+def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
                    bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=10, parameters=None):
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
         
@@ -230,8 +230,11 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
     print("----------------------")
     print("restarting containers")
     
-    run_docker_restart_command(bridge_container_name, default_terminal)
     run_docker_restart_command(autoware_container_name, default_terminal)
+    if iteration % 8 == 0:
+        print("Also restarting carla this iteartion to prevent it from segfaulting")
+        run_docker_restart_command(carla_container_name, default_terminal)
+    run_docker_restart_command(bridge_container_name, default_terminal)
 
 
     #--------------------return if we are not within a CAT run-----------------------
@@ -336,8 +339,11 @@ def run_simulation(autoware_container_name, bridge_container_name, default_termi
         print("----------------------")
         print("restarting containers")
 
-        run_docker_restart_command(bridge_container_name, default_terminal)
         run_docker_restart_command(autoware_container_name, default_terminal)
+        if iteration % 8 == 0:
+            print("Also restarting carla this iteartion to prevent it from segfaulting")
+            run_docker_restart_command(carla_container_name, default_terminal)
+        run_docker_restart_command(bridge_container_name, default_terminal)
         
         #saving
         ego_traj = env._trajectories["ego"]
