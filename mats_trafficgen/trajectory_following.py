@@ -31,7 +31,8 @@ class TrajectoryFollowingAgent(BasicAgent):
         self._max_steer = 0.8
 
     def run_step(self):
-        if self._current >= len(self.path):
+        if self._current >= len(self.path) - 1:
+            #TODO need to decide whether it should just continue straight or it should brake
             ctrl = carla.VehicleControl()
             ctrl.throttle = 0
             ctrl.brake = 1
