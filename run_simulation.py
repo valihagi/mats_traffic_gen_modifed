@@ -205,6 +205,20 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     counter = 0
     collision = False
     while not done:
+        if counter % 40 == 0 and counter < 110 and strategy == "cat_iterative":
+            start = time.time()
+            _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
+            traj = [
+                (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
+                for point in adv_traj
+            ]
+            adv_agent = TrajectoryFollowingAgent(
+                vehicle=env.actors["adversary"],
+                trajectory=traj
+            )
+            agents["adversary"] = adv_agent
+            end = time.time()
+            print(end - start)
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)

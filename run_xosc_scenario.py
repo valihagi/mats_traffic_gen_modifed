@@ -294,6 +294,15 @@ def main(args):
             obs, info = env.reset(options={
             })
 
+        elif strategy == "cat_iterative":
+            print("USING CAT iteratively")
+            obs, info = env.reset(options={
+            })
+
+        else:
+            print("unknown startegy please check the config.")
+            return
+
         run_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
                        carla_container_name=carla_container_name,
