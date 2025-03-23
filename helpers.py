@@ -369,7 +369,7 @@ def create_random_control_point(vehicle, target_x, target_y):
     random_y = start_y + random_length_factor * (target_y - start_y) + random_width_offset * perp_y
     return random_x, random_y, random_length_factor, random_width_offset
 
-def get_vehicle_data(vehicle):
+def get_vehicle_data(vehicle, near_miss=False):
     transform = vehicle.get_transform()
     location = transform.location
     rotation = transform.rotation
@@ -387,6 +387,13 @@ def get_vehicle_data(vehicle):
     heading_vector = np.array([hx, hy])
     acc_along_heading = np.dot(acc_vector, heading_vector)
 
+    if near_miss:
+        length = bbox.extent.x * 2.8
+        width = bbox.extent.y * 2.8
+    else:
+        length = bbox.extent.x * 2.0
+        width = bbox.extent.y * 2.0
+
     return {
         'x': location.x,
         'y': location.y,
@@ -395,14 +402,46 @@ def get_vehicle_data(vehicle):
         'hx': hx,
         'hy': hy,
         'acc': acc_along_heading,
-        'length': bbox.extent.x * 2,
-        'width': bbox.extent.y * 2
+        'length': length,
+        'width': width
     }
 
 def calculate_ttc(vehicle1, vehicle2):
     # Extract data from both vehicles
     data1 = get_vehicle_data(vehicle1)
     data2 = get_vehicle_data(vehicle2)
+
+    # Create DataFrame in required format
+    df = pd.DataFrame([{
+        'x_i': data1['x'],
+        'y_i': data1['y'],
+        'vx_i': data1['vx'],
+        'vy_i': data1['vy'],
+        'hx_i': data1['hx'],
+        'hy_i': data1['hy'],
+        'acc_i': data1['acc'],
+        'length_i': data1['length'],
+        'width_i': data1['width'],
+        'x_j': data2['x'],
+        'y_j': data2['y'],
+        'vx_j': data2['vx'],
+        'vy_j': data2['vy'],
+        'hx_j': data2['hx'],
+        'hy_j': data2['hy'],
+        'acc_j': data2['acc'],
+        'length_j': data2['length'],
+        'width_j': data2['width'],
+    }])
+
+    # TTC calculation
+    ttc_result = TTC_DRAC_MTTC(df)
+
+    return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
+
+def calculate_near_miss_ttc(vehicle1, vehicle2):
+    # Extract data from both vehicles
+    data1 = get_vehicle_data(vehicle1, near_miss=True)
+    data2 = get_vehicle_data(vehicle2, near_miss=True)
 
     # Create DataFrame in required format
     df = pd.DataFrame([{
@@ -494,6 +533,42 @@ def calculate_pet(agent1_traj, agent2_traj, conflict_zone_points, timestep_durat
                 break
 
     return min(pet_list) if pet_list else None
+
+def calc_euclidian_distance(traj1, traj2, width1, width2, length1, length2):
+    distances = []
+    for x1, y1, yaw1, x2, y2, yaw2 in zip(traj1, traj2):
+        bbox1 = calc_bounding_box_coordinates(x1, y1, yaw1, length1, width1)
+        bbox2 = calc_bounding_box_coordinates(x2, y2, yaw2, length2, width2)
+
+        poly1 = Polygon(bbox1)
+        poly2 = Polygon(bbox2)
+        distances.append(poly1.distance(poly2))
+    return distances
+
+def calc_bounding_box_coordinates(x, y, heading, length, width):
+    cos_theta = np.cos(heading)
+    sin_theta = np.sin(heading)
+
+    dx = 0.5 * length
+    dy = 0.5 * width
+
+    corners = [
+        (x + dx * cos_theta - dy * sin_theta, y + dx * sin_theta + dy * cos_theta),  # front-right
+        (x + dx * cos_theta + dy * sin_theta, y + dx * sin_theta - dy * cos_theta),  # front-left
+        (x - dx * cos_theta + dy * sin_theta, y - dx * sin_theta - dy * cos_theta),  # rear-left
+        (x - dx * cos_theta - dy * sin_theta, y - dx * sin_theta + dy * cos_theta),  # rear-right
+    ]
+
+    return corners
+
+
+def shortest_distance_between_vehicles(corners1, corners2):
+    """
+    corners1 and corners2: lists of 4 (x, y) tuples for each car
+    """
+    poly1 = Polygon(corners1)
+    poly2 = Polygon(corners2)
+    return poly1.distance(poly2)
 
 def plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, string):
     plt.figure(figsize=(10, 10))
