@@ -583,24 +583,32 @@ def calculate_pet(agent1_traj, agent2_traj, conflict_zone_points, timestep_durat
 
     return min(pet_list) if pet_list else None
 
-def calc_euclidian_distance(traj1, traj2, width1, width2, length1, length2):
-    distances = []
-    for x1, y1, yaw1, x2, y2, yaw2 in zip(traj1, traj2):
-        bbox1 = calc_bounding_box_coordinates(x1, y1, yaw1, length1, width1)
-        bbox2 = calc_bounding_box_coordinates(x2, y2, yaw2, length2, width2)
+def calc_euclidian_distance(vehicle1, vehicle2):
+    bbox1 = calc_bounding_box_coordinates(vehicle1)
+    bbox2 = calc_bounding_box_coordinates(vehicle2)
 
-        poly1 = Polygon(bbox1)
-        poly2 = Polygon(bbox2)
-        distances.append(poly1.distance(poly2))
-    return distances
+    poly1 = Polygon(bbox1)
+    poly2 = Polygon(bbox2)
+    return poly1.distance(poly2)
 
-def calc_bounding_box_coordinates(x, y, heading, length, width):
-    cos_theta = np.cos(heading)
-    sin_theta = np.sin(heading)
+def calc_bounding_box_coordinates(vehicle):
+    transform = vehicle.get_transform()
+    bbox = vehicle.bounding_box
 
-    dx = 0.5 * length
-    dy = 0.5 * width
+    # Extract heading (convert to radians) and position
+    heading_deg = transform.rotation.yaw
+    heading_rad = np.radians(heading_deg)
+    x = transform.location.x
+    y = transform.location.y
 
+    # Half-dimensions of the vehicle
+    dx = bbox.extent.x  # Length / 2
+    dy = bbox.extent.y  # Width / 2
+
+    cos_theta = np.cos(heading_rad)
+    sin_theta = np.sin(heading_rad)
+
+    # Compute the 4 corners using the vehicle's center, heading, and size
     corners = [
         (x + dx * cos_theta - dy * sin_theta, y + dx * sin_theta + dy * cos_theta),  # front-right
         (x + dx * cos_theta + dy * sin_theta, y + dx * sin_theta - dy * cos_theta),  # front-left
@@ -610,14 +618,6 @@ def calc_bounding_box_coordinates(x, y, heading, length, width):
 
     return corners
 
-
-def shortest_distance_between_vehicles(corners1, corners2):
-    """
-    corners1 and corners2: lists of 4 (x, y) tuples for each car
-    """
-    poly1 = Polygon(corners1)
-    poly2 = Polygon(corners2)
-    return poly1.distance(poly2)
 
 def plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, string):
     plt.figure(figsize=(10, 10))
