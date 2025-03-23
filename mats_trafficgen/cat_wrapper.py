@@ -859,6 +859,65 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             # 5. Plot results
             plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
             return True 
+        
+    def score_lane_adherence(self, trajectory_original, weight=1):
+        """
+        Checks if the given trajectory is valid based on the Scenic Network object and plots the results.
+
+        Args:
+            trajectory (list of tuples): List of (x, y, yaw) points.
+            network (scenic.core.network.Network): Scenic network object.
+
+        Returns:
+            bool: True if trajectory is valid, False otherwise.
+        """
+        errors = []
+        trajectory = [(x, -y, -z) for x, y, z in trajectory_original]
+        network = self._network
+
+        for x, y, yaw in trajectory:
+            current_point = shapely.geometry.Point(x, y)
+
+            candidate_lanes = []
+            yaw_differences = []
+
+            # 2. Check which lanes contain this point
+            for lane in network.lanes:
+                if lane.containsPoint(current_point):
+                    candidate_lanes.append(lane)
+                    nearest_pt = lane.centerline.lineString.interpolate(
+                        lane.centerline.lineString.project(current_point)
+                    )
+
+                    # Compute expected lane direction
+                    lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) + 1.57
+
+                    lane_yaw = np.degrees(lane_yaw_rad) 
+
+                    # Compute yaw difference and store
+                    yaw_diff = abs(self.wrap_to_180(yaw - lane_yaw))
+                    yaw_differences.append(yaw_diff)
+            
+            # Select the lane with the closest heading to the vehicle's heading
+            best_lane_idx = min(range(len(yaw_differences)), key=lambda i: abs(yaw_differences[i]))
+            best_lane = candidate_lanes[best_lane_idx]
+            
+            # Get the nearest point on the best lane's centerline
+            nearest_pt = best_lane.centerline.lineString.interpolate(
+                    best_lane.centerline.lineString.project(current_point)
+                )
+            lateral_error = current_point.distance(nearest_pt)
+            
+            # Combine errors in a weighted sum
+            error = weight * lateral_error
+            errors.append(error)
+        
+        # If no points produced an error, return a default high value or 0.
+        if not errors:
+            return float('inf')
+        
+        score = np.mean(errors)
+        return score
 
     # Helper function to normalize yaw differences
     def wrap_to_180(self, angle):
@@ -1319,7 +1378,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         #TODO calc other KPIs also here
         #self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
         acc = adv.get_acceleration()
-        #self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+        # TODO self.score_lane_adherence() should be calculated in reset funciton acutally!!
 
     
     def get_aabb(self, vehicle):

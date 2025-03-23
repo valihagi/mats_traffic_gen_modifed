@@ -739,6 +739,7 @@ def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid
     plt.close()
 
 def save_log_file(env, info, parameters, iteration, in_odd=True):
+    # calc final metrics here:
     filename = f'/workspace/random_results/succesfull_runs/data{iteration}.json'
     if in_odd:
         ego_traj = env._trajectories["ego_vehicle"]
@@ -752,7 +753,7 @@ def save_log_file(env, info, parameters, iteration, in_odd=True):
         adv_traj = []
         valid = "invalid by odd"
         filename = f'/workspace/random_results/not_in_odd/data{iteration}.json'
-
+    info["kpis"]["lane_adherence"] = env.score_lane_adherence([[d["x"], d["y"], d["bbox_yaw"]] for d in adv_traj])
     data = {
         "ego_traj": ego_traj,
         "adv_traj": adv_traj,
