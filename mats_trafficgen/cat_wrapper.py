@@ -1765,50 +1765,417 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         return trajectory
     
     
-def create_random_control_point(vehicle):
-    half_width = 35
-    length = 45
-    transform = vehicle.get_transform()
-    x, y = transform.location.x, transform.location.y
-    heading = math.radians(transform.rotation.yaw)
-    #create borders of where random points are allowed to be
-    bottom_left_x = x - half_width * math.sin(heading)
-    bottom_left_y = y + half_width * math.cos(heading)
+    def create_random_control_point(vehicle):
+        half_width = 35
+        length = 45
+        transform = vehicle.get_transform()
+        x, y = transform.location.x, transform.location.y
+        heading = math.radians(transform.rotation.yaw)
+        #create borders of where random points are allowed to be
+        bottom_left_x = x - half_width * math.sin(heading)
+        bottom_left_y = y + half_width * math.cos(heading)
 
-    bottom_right_x = x + half_width * math.sin(heading)
-    bottom_right_y = y - half_width * math.cos(heading)
+        bottom_right_x = x + half_width * math.sin(heading)
+        bottom_right_y = y - half_width * math.cos(heading)
 
-    top_left_x = bottom_left_x + length * math.cos(heading)
-    top_left_y = bottom_left_y + length * math.sin(heading)
+        top_left_x = bottom_left_x + length * math.cos(heading)
+        top_left_y = bottom_left_y + length * math.sin(heading)
 
-    top_right_x = bottom_right_x + length * math.cos(heading)
-    top_right_y = bottom_right_y + length * math.sin(heading)
+        top_right_x = bottom_right_x + length * math.cos(heading)
+        top_right_y = bottom_right_y + length * math.sin(heading)
 
-    # Calculate min and max values
-    x_min = min(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
-    x_max = max(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
-    y_min = min(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
-    y_max = max(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
+        # Calculate min and max values
+        x_min = min(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
+        x_max = max(bottom_left_x, bottom_right_x, top_left_x, top_right_x)
+        y_min = min(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
+        y_max = max(bottom_left_y, bottom_right_y, top_left_y, top_right_y)
 
-    random_x = random.uniform(x_min, x_max)
-    random_y = random.uniform(y_min, y_max)
-    return random_x, random_y
+        random_x = random.uniform(x_min, x_max)
+        random_y = random.uniform(y_min, y_max)
+        return random_x, random_y
 
-    
-def create_random_end_point(vehicle):
-    transform = vehicle.get_transform()
-    x, y = transform.location.x, transform.location.y
-    distance = random.uniform(50, 55)
-    
-    angle_offset = random.uniform(-math.pi / 2, math.pi / 2)
-    random_angle = math.radians(transform.rotation.yaw) + angle_offset
+        
+    def create_random_end_point(vehicle):
+        transform = vehicle.get_transform()
+        x, y = transform.location.x, transform.location.y
+        distance = random.uniform(50, 55)
+        
+        angle_offset = random.uniform(-math.pi / 2, math.pi / 2)
+        random_angle = math.radians(transform.rotation.yaw) + angle_offset
 
-    new_x = x + distance * math.cos(random_angle)
-    new_y = y + distance * math.sin(random_angle)
+        new_x = x + distance * math.cos(random_angle)
+        new_y = y + distance * math.sin(random_angle)
 
-    return new_x, new_y
+        return new_x, new_y
 
 
+    def _generate_adversarial_route_iterative(self):
+        features, ego_route = self._get_features_iterative()
 
+        pred_trajectory, pred_score = self._sample_trajectories(features)
+        scores = self._score_trajectories(pred_trajectory, pred_score, features)
+        adv_traj_id, adv_traj, ego_traj = self._select_colliding_trajectory_iterative(features, pred_score, pred_trajectory)
+
+        return features, adv_traj, ego_traj
+
+
+    def _get_features_iterative(self):
+        roadgraph_features = self._get_roadgraph_features(self._max_samples)
+        self.filter_road_graph_for_odd_checking(roadgraph_features)
+        state_features, ego_route = self._get_state_features_iterative("ego")
+        dynamic_map_features = self._get_dynamic_map_features()
+
+        ids = roadgraph_features["roadgraph_samples/id"]
+        for new_id, old_id in enumerate(sorted(np.unique(ids))):
+            roadgraph_features["roadgraph_samples/id"][ids == old_id] = new_id
+            dynamic_map_features["traffic_light_state/past/id"][
+                dynamic_map_features["traffic_light_state/past/id"] == old_id] = new_id
+            dynamic_map_features["traffic_light_state/current/id"][
+                dynamic_map_features["traffic_light_state/current/id"] == old_id] = new_id
+
+        features = {}
+        features.update(roadgraph_features)
+        features.update(state_features)
+        features.update(dynamic_map_features)
+        features["scenario/id"] = np.array(["template"])
+        features["state/objects_of_interest"] = features['state/tracks_to_predict'].copy()
+        return features, ego_route
+
+    def _get_state_features_iterative(self, ego_agent: str) -> tuple[dict, np.ndarray]:
+        state_features = {
+            "state/id": np.full([128, ], -1, dtype=np.int64),
+            "state/type": np.full([128, ], 0, dtype=np.int64),
+            "state/is_sdc": np.full([128, ], 0, dtype=np.int64),
+            'state/tracks_to_predict': np.full([128, ], 0, dtype=np.int64),
+            'state/current/bbox_yaw': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/height': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/length': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/valid': np.full([128, 1], 0, dtype=np.int64),
+            'state/current/vel_yaw': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/velocity_x': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/velocity_y': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/width': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/x': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/y': np.full([128, 1], -1, dtype=np.float32),
+            'state/current/z': np.full([128, 1], -1, dtype=np.float32),
+            'state/past/bbox_yaw': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/height': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/length': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/valid': np.full([128, 10], 0, dtype=np.int64),
+            'state/past/vel_yaw': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/velocity_x': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/velocity_y': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/width': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/x': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/y': np.full([128, 10], -1, dtype=np.float32),
+            'state/past/z': np.full([128, 10], -1, dtype=np.float32),
+            'state/future/bbox_yaw': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/height': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/length': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/valid': np.full([128, 80], 0, dtype=np.int64),
+            'state/future/vel_yaw': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/velocity_x': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/velocity_y': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/width': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/x': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/y': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/z': np.full([128, 80], -1, dtype=np.float32)
+        }
+
+        for i, actor_id in enumerate(self.agents):
+            actor = self.actors[actor_id]
+            state_features["state/id"][i] = actor.id
+            state_features["state/type"][i] = AgentTypes.from_carla_type(actor).value
+            state_features["state/is_sdc"][i] = 1 if actor_id == self._ego_agent else 0
+            state_features["state/tracks_to_predict"][i] = i < len(self._trajectories)
+
+            for t in range(min(len(self._trajectories[actor_id]), 91)):
+                min_length = min(len(self._trajectories[actor_id]), 91) - 1
+                offset = 0
+                if t > min_length - 11 and t < min_length:
+                    offset = min_length - 10
+                    time = "past"
+                elif t == min_length:
+                    offset = min_length
+                    time = "current"
+                else:
+                    offset = 51
+                    time = ""
+                if time!= "":
+                    state = self._trajectories[actor_id][t]
+                    for key in state:
+                        state_features[f"state/{time}/{key}"][i, t - offset] = state[key]
+
+        is_idc = state_features["state/is_sdc"] == 1
+        ego_route = np.concatenate([
+            state_features["state/future/x"][is_idc],
+            state_features["state/future/y"][is_idc],
+        ])
+        return state_features, ego_route
+
+    def _select_colliding_trajectory_iterative(self, features, pred_score, pred_trajectory):
+        trajs_OV = pred_trajectory[self.agents.index(self._adv_agent)]
+        probs_OV = pred_score[self.agents.index(self._adv_agent)]
+        probs_OV[6:] = probs_OV[6]
+        probs_OV = np.exp(probs_OV)
+        probs_OV = probs_OV / np.sum(probs_OV)
+        res = np.zeros(pred_trajectory.shape[1])
+        min_dist = np.full(pred_trajectory.shape[1], fill_value=1000000)
+        ego = self.actors[self._ego_agent]
+        adversary = (set(self.agents) - {self._ego_agent}).pop()
+        adversary = self.actors[adversary]
+        adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
+        width, length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
+        
+        trajs_AV = pred_trajectory[self.agents.index(self._ego_agent)]
+        probs_AV = pred_score[self.agents.index(self._ego_agent)]
+        probs_AV[16:] = probs_AV[16]
+        probs_AV = np.exp(probs_AV)
+        probs_AV = probs_AV / np.sum(probs_AV)
+
+        for j, prob_OV in enumerate(probs_OV):
+            P1 = prob_OV
+            traj_OV = trajs_OV[j][::5]
+            traj_OV_plot = trajs_OV[j]
+            full_adv_traj = get_full_trajectory(self.agents.index(self._adv_agent), features, future=traj_OV_plot)[:,::-1]
+            full_adv_traj = np.concatenate([
+                full_adv_traj,
+                np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
+            ], axis=1)
+            # CHeck if on roadgraph here:
+            """visualize_traj(
+                full_adv_traj[4:-4, 0],
+                full_adv_traj[4:-4, 1],
+                full_adv_traj[4:-4, 2],
+                1.4,
+                2.9,
+                (5, 5, 5)
+            )"""
+            yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
+            width_OV = adv_width
+            length_OV = adv_length
+            cos_theta = np.cos(yaw_OV)
+            sin_theta = np.sin(yaw_OV)
+            bbox_OV = np.concatenate([
+                traj_OV,
+                yaw_OV,
+                traj_OV[:, 0].reshape(-1,
+                                        1) + 0.5 * length_OV * cos_theta + 0.5 * width_OV * sin_theta,
+                traj_OV[:, 1].reshape(-1,
+                                        1) + 0.5 * length_OV * sin_theta - 0.5 * width_OV * cos_theta,
+                traj_OV[:, 0].reshape(-1,
+                                        1) + 0.5 * length_OV * cos_theta - 0.5 * width_OV * sin_theta,
+                traj_OV[:, 1].reshape(-1,
+                                        1) + 0.5 * length_OV * sin_theta + 0.5 * width_OV * cos_theta,
+                traj_OV[:, 0].reshape(-1,
+                                        1) - 0.5 * length_OV * cos_theta - 0.5 * width_OV * sin_theta,
+                traj_OV[:, 1].reshape(-1,
+                                        1) - 0.5 * length_OV * sin_theta + 0.5 * width_OV * cos_theta,
+                traj_OV[:, 0].reshape(-1,
+                                        1) - 0.5 * length_OV * cos_theta + 0.5 * width_OV * sin_theta,
+                traj_OV[:, 1].reshape(-1,
+                                        1) - 0.5 * length_OV * sin_theta - 0.5 * width_OV * cos_theta
+            ], axis=1)
+
+            for i, prob_AV in enumerate(probs_AV):
+                P2 = prob_AV
+                traj_AV = trajs_AV[i][::5]
+                traj_AV_plot = trajs_AV[i]
+                full_ego_traj = get_full_trajectory(self.agents.index(self._ego_agent), features, future=traj_AV_plot)[:,::-1]
+                full_ego_traj = np.concatenate([
+                    full_ego_traj,
+                    np.rad2deg(get_polyline_yaw(full_ego_traj)).reshape(-1, 1)
+                ], axis=1)
+                # CHeck if on roadgraph here:
+                """visualize_traj(
+                    full_ego_traj[4:-4, 0],
+                    full_ego_traj[4:-4, 1],
+                    full_ego_traj[4:-4, 2],
+                    1.4,
+                    2.9,
+                    (5, 0, 5)
+                )"""
+
+                yaw_AV = get_polyline_yaw(trajs_AV[i])[::5].reshape(-1, 1)
+                width_AV = width
+                length_AV = length
+                cos_theta = np.cos(yaw_AV)
+                sin_theta = np.sin(yaw_AV)
+
+                bbox_AV = np.concatenate((traj_AV, yaw_AV, \
+                                            traj_AV[:, 0].reshape(-1,
+                                                                1) + 0.5 * length_AV * cos_theta + 0.5 * width_AV * sin_theta, \
+                                            traj_AV[:, 1].reshape(-1,
+                                                                1) + 0.5 * length_AV * sin_theta - 0.5 * width_AV * cos_theta, \
+                                            traj_AV[:, 0].reshape(-1,
+                                                                1) + 0.5 * length_AV * cos_theta - 0.5 * width_AV * sin_theta, \
+                                            traj_AV[:, 1].reshape(-1,
+                                                                1) + 0.5 * length_AV * sin_theta + 0.5 * width_AV * cos_theta, \
+                                            traj_AV[:, 0].reshape(-1,
+                                                                1) - 0.5 * length_AV * cos_theta - 0.5 * width_AV * sin_theta, \
+                                            traj_AV[:, 1].reshape(-1,
+                                                                1) - 0.5 * length_AV * sin_theta + 0.5 * width_AV * cos_theta, \
+                                            traj_AV[:, 0].reshape(-1,
+                                                                1) - 0.5 * length_AV * cos_theta + 0.5 * width_AV * sin_theta, \
+                                            traj_AV[:, 1].reshape(-1,
+                                                                1) - 0.5 * length_AV * sin_theta - 0.5 * width_AV * cos_theta),
+                                            axis=1)
+
+                P3 = 0
+                uncertainty = 1.
+                alpha = 0.99
+                '''
+                B-A  F-E
+                | |  | |
+                C-D  G-H
+                '''
+                for (Cx1, Cy1, yaw1, xA, yA, xB, yB, xC, yC, xD, yD), (
+                        Cx2, Cy2, yaw2, xE, yE, xF, yF, xG, yG, xH, yH) in zip(bbox_AV, bbox_OV):
+                    uncertainty *= alpha
+                    ego_adv_dist = np.linalg.norm([Cx1 - Cx2, Cy1 - Cy2])
+                    if ego_adv_dist < min_dist[j]:
+                        min_dist[j] = ego_adv_dist
+                    if ego_adv_dist >= np.linalg.norm(
+                            [0.5 * length_AV, 0.5 * width_AV]) + np.linalg.norm(
+                        [0.5 * length_OV, 0.5 * width_OV]):
+                        pass
+                    elif Intersect([xA, yA, xB, yB], [xE, yE, xF, yF]) or Intersect(
+                            [xA, yA, xB, yB],
+                            [xF, yF, xG, yG]) or \
+                            Intersect([xA, yA, xB, yB], [xG, yG, xH, yH]) or Intersect(
+                        [xA, yA, xB, yB],
+                        [xH, yH, xE, yE]) or \
+                            Intersect([xB, yB, xC, yC], [xE, yE, xF, yF]) or Intersect(
+                        [xB, yB, xC, yC],
+                        [xF, yF, xG, yG]) or \
+                            Intersect([xB, yB, xC, yC], [xG, yG, xH, yH]) or Intersect(
+                        [xB, yB, xC, yC],
+                        [xH, yH, xE, yE]) or \
+                            Intersect([xC, yC, xD, yD], [xE, yE, xF, yF]) or Intersect(
+                        [xC, yC, xD, yD],
+                        [xF, yF, xG, yG]) or \
+                            Intersect([xC, yC, xD, yD], [xG, yG, xH, yH]) or Intersect(
+                        [xC, yC, xD, yD],
+                        [xH, yH, xE, yE]) or \
+                            Intersect([xD, yD, xA, yA], [xE, yE, xF, yF]) or Intersect(
+                        [xD, yD, xA, yA],
+                        [xF, yF, xG, yG]) or \
+                            Intersect([xD, yD, xA, yA], [xG, yG, xH, yH]) or Intersect(
+                        [xD, yD, xA, yA],
+                        [xH, yH, xE, yE]):
+                        P3 = uncertainty
+                        break
+
+                res[j] += P1 * P2 * P3
+            """world = CarlaDataProvider.get_world()
+            spectator = world.get_spectator()
+            ego_loc = ego.get_location()
+            spectator.set_transform(carla.Transform(
+                carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 60),
+                carla.Rotation(pitch=-90)
+            ))
+            settings = world.get_settings()
+            world.tick()"""
+        if np.any(res):
+            adv_traj_id = np.argmax(res)
+        else:
+            adv_traj_id = np.argmin(min_dist)
+
+        """hist_AV = self.AV_history[:,:11, :2]
+
+        #------------------------newcode-------------------------
+        if self.objective_model is not None:
+            total_scores = None
+            for ego_hist, ego_traj in zip(hist_AV, trajs_AV):
+                ego_full = np.concatenate((ego_hist, ego_traj), axis=0)
+                ego_full = np.concatenate((ego_full, np.ones((len(ego_full), 1))), axis=1).astype(np.float64)
+                clean_advs = []
+                for traj_OV in trajs_OV:
+                    traj_full = np.concatenate((self.storage[self.env.current_seed].get('adv_past'), traj_OV), axis=0)
+                    traj_yaw = get_polyline_yaw(traj_full).reshape(-1, 1)
+                    base_ones = np.ones((len(traj_full), 1))
+                    # Want index (0, 1) = (x, y), (4) = (heading), (-1) = (valid)
+                    traj_full = np.concatenate((traj_full, base_ones, base_ones, traj_yaw, base_ones), axis=1)
+                    traj_full_clean = clean_traj(ego_full, traj_full)
+                    clean_advs.append(torch.from_numpy(traj_full_clean).to(torch.float32))
+                scores = self.objective_model(None, clean_advs, clean_advs)
+                if total_scores is None:
+                    total_scores = torch.clone(scores)
+                else:
+                    total_scores += scores
+            if self.objective_model_mode == 'both':
+                adv_traj_id = total_scores.mean(dim=-1).argmax().item()
+            elif self.objective_model_mode == 'sc':
+                adv_traj_id = total_scores[:, 0].argmax().item()
+            elif self.objective_model_mode == 'diff':
+                adv_traj_id = total_scores[:, 1].argmax().item()
+            else:
+                raise ValueError('Unexpected objective_model_mode')
+        #--------------------------------------------------------"""
+
+        adv_path = trajs_OV[adv_traj_id]
+        adv_yaw = get_polyline_yaw(adv_path).reshape(-1, 1)
+        adv_vel = np.linalg.norm(get_polyline_vel(adv_path), axis=1).reshape(-1, 1)
+
+        ego_path = trajs_OV[0]
+        ego_yaw = get_polyline_yaw(ego_path).reshape(-1, 1)
+        ego_vel = np.linalg.norm(get_polyline_vel(ego_path), axis=1).reshape(-1, 1)
+
+        ego_traj = get_full_trajectory(self.agents.index(self._ego_agent), features)[:, ::-1]
+        adv_traj_original = get_full_trajectory(self.agents.index(self._adv_agent), features)[:, ::-1]
+        full_adv_traj = get_full_trajectory(self.agents.index(self._adv_agent), features, future=adv_path)[:,
+                        ::-1]
+        ego_traj = np.concatenate([
+            ego_traj,
+            np.rad2deg(get_polyline_yaw(ego_traj)).reshape(-1, 1)
+        ], axis=1)
+        full_adv_traj = np.concatenate([
+            full_adv_traj,
+            np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
+        ], axis=1)
+        adv_traj_original = np.concatenate([
+            adv_traj_original,
+            np.rad2deg(get_polyline_yaw(adv_traj_original)).reshape(-1, 1)
+        ], axis=1)
+
+        ego_width, ego_length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
+        adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
+        visualize_traj(
+            ego_traj[4:-4, 0],
+            ego_traj[4:-4, 1],
+            ego_traj[4:-4, 2],
+            ego_width,
+            ego_length,
+            (0, 5, 0)
+        )
+        visualize_traj(
+            adv_traj_original[4:-4, 0],
+            adv_traj_original[4:-4, 1],
+            adv_traj_original[4:-4, 2],
+            adv_width,
+            adv_length,
+            (0, 0, 5)
+        )
+        visualize_traj(
+            full_adv_traj[4:-4, 0],
+            full_adv_traj[4:-4, 1],
+            full_adv_traj[4:-4, 2],
+            adv_width,
+            adv_length,
+            (5, 0, 0)
+        )
+
+        world = CarlaDataProvider.get_world()
+        spectator = world.get_spectator()
+        ego_loc = ego.get_location()
+        spectator.set_transform(carla.Transform(
+            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 60),
+            carla.Rotation(pitch=-90)
+        ))
+        settings = world.get_settings()
+        settings.synchronous_mode = False
+        adv_traj = np.concatenate([adv_path[:, ::-1], adv_vel, adv_yaw], axis=1)
+        ego_traj = np.concatenate([ego_path[:, ::-1], ego_vel, ego_yaw], axis=1)
+        return adv_traj_id, adv_traj, ego_traj
 
 

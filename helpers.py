@@ -12,6 +12,7 @@ import numpy as np
 from TwoDimTTC import TTC
 import pandas as pd
 import shapely.geometry
+from shapely.geometry import Point, Polygon
 
 from cat.advgen.adv_generator import get_polyline_yaw
 import xml.etree.ElementTree as ET
@@ -429,6 +430,70 @@ def calculate_ttc(vehicle1, vehicle2):
     ttc_result = TTC_DRAC_MTTC(df)
 
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
+
+def calculate_entry_exit_times(conflict_area, traj, timestep):
+    # makes way more sense to calculate this in post processing!!
+    inside_prev = False
+    entry_time = None
+    entry_exit_times = []
+
+    for i, pos in enumerate(traj):
+        point = Point(pos)
+        inside_now = conflict_area.contains(point)
+
+        if inside_now and not inside_prev:
+            entry_time = i * timestep  # Entered zone TODO
+        elif not inside_now and inside_prev and entry_time is not None:
+            exit_time = i * timestep  # Exited zone
+            entry_exit_times.append((entry_time, exit_time))
+            entry_time = None
+
+        inside_prev = inside_now
+
+    # Handle case where agent ends inside the zone
+    if inside_prev and entry_time is not None:
+        exit_time = len(traj) * timestep
+        entry_exit_times.append((entry_time, exit_time))
+
+    return entry_exit_times
+
+def calculate_pet(agent1_traj, agent2_traj, conflict_zone_points, timestep_duration):
+    """
+    Calculates PET (Post-Encroachment Time) between two full trajectories after scenario execution.
+
+    Parameters:
+        agent1_traj: list of (x, y) tuples
+        agent2_traj: list of (x, y) tuples
+        conflict_zone_points: list of (x, y) points defining the conflict zone polygon
+        timestep_duration: time per step in seconds
+
+    Returns:
+        PET in seconds, or None if no zone conflict occurred, or 0 if vehicles in the zone at the same time
+    """
+    zone = Polygon(conflict_zone_points)
+
+    a1_times = calculate_entry_exit_times(agent1_traj, zone, timestep_duration)
+    a2_times = calculate_entry_exit_times(agent2_traj, zone, timestep_duration)
+
+    if not a1_times and not a2_times:
+        return None
+
+    # Check for overlapping intervals (simultaneous presence)
+    for a1_entry, a1_exit in a1_times:
+        for a2_entry, a2_exit in a2_times:
+            if a1_entry < a2_exit and a2_entry < a1_exit:
+                return 0
+
+    # Find PETs
+    pet_list = []
+    for a1_entry, a1_exit in a1_times:
+        for a2_entry, _ in a2_times:
+            if a2_entry > a1_exit:
+                pet = a2_entry - a1_exit
+                pet_list.append(pet)
+                break
+
+    return min(pet_list) if pet_list else None
 
 def plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, string):
     plt.figure(figsize=(10, 10))
