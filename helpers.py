@@ -406,6 +406,55 @@ def get_vehicle_data(vehicle, near_miss=False):
         'width': width
     }
 
+def calculate_risk_coefficient(ego_vehicle, adv_vehicle, G=1.0, k=1.0, epsilon=1e-6):
+    """
+    Compute the risk coefficient (DRP) from an obstacle vehicle to an ego vehicle.
+
+    Parameters:
+        ego_vehicle (carla.Actor): The ego vehicle (target of risk computation)
+        obstacle_vehicle (carla.Actor): The obstacle vehicle
+        G (float): Scaling coefficient (default 1.0)
+        k (float): Angle sensitivity coefficient (default 1.0)
+
+    Returns:
+        float: The risk coefficient at current time t
+    """
+    ego_loc = ego_vehicle.get_transform().location
+    obs_loc = adv_vehicle.get_transform().location
+    
+    # Compute the distance vector from the obstacle to the ego vehicle
+    dx = ego_loc.x - obs_loc.x
+    dy = ego_loc.y - obs_loc.y
+    d_vec = np.array([dx, dy])
+    
+    # Euclidean distance (norm of d_vec)
+    d_norm = np.linalg.norm(d_vec) + epsilon  # Avoid division by zero
+
+    # Get obstacle velocity vector (only x and y components)
+    obs_velocity = adv_vehicle.get_velocity()
+    v_vec = np.array([obs_velocity.x, obs_velocity.y])
+    speed = np.linalg.norm(v_vec)
+    
+    # If the obstacle is static, we use a potential field only (exp_factor = 1)
+    if speed < epsilon:
+        exp_factor = 1.0
+    else:
+        # Normalize the velocity vector to get the unit direction
+        v_unit = v_vec / (speed + epsilon)
+        # Normalize the distance vector
+        d_unit = d_vec / d_norm
+        # Compute cosine of the angle between velocity direction and the distance vector
+        cos_theta = np.clip(np.dot(v_unit, d_unit), -1.0, 1.0)
+        # The exponential factor inside the DRP formula
+        exp_factor = math.exp(k * speed * cos_theta)
+    
+    # The term d_vec/||d_vec||^2 has a magnitude of 1/||d_vec||
+    # Hence, the scalar risk contribution is:
+    risk = (1.0 / d_norm) * exp_factor
+    
+    return G * risk
+
+
 def calculate_ttc(vehicle1, vehicle2):
     # Extract data from both vehicles
     data1 = get_vehicle_data(vehicle1)

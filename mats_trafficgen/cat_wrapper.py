@@ -7,7 +7,7 @@ import random
 import bezier
 import carla
 import gymnasium
-from helpers import calculate_ttc, plot_stuff, plot_trajectory_vs_network
+from helpers import calculate_risk_coefficient, calculate_ttc, plot_stuff, plot_trajectory_vs_network
 import numpy as np
 import optree
 import tensorflow as tf
@@ -164,7 +164,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         self._args = args
         self._model = VectorNet(args).to("cpu")
         self._model.load_state_dict(torch.load(model_path, map_location="cpu"))
-        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": [], "drac": [], "mttc": []}
+        self.kpis = {"ttc": [], "risk_coefficient": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": [], "drac": [], "mttc": []}
         self.parameters = {}
 
     def reset(
@@ -256,7 +256,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         return self.kpis
     
     def reset_kpis(self):
-        self.kpis = {"ttc": [], "adv_yaw": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": [], "drac": [], "mttc": []}
+        self.kpis = {"ttc": [], "risk_coefficient": [], "adv_out_of_road": [], "adv_acc": [], "enhanced_ttc": [], "ttnc": [], "thw": [], "tts": [], "msdf": [], "drac": [], "mttc": []}
     
     def get_ttc_as_dict(self):
         return {"ttc": self.kpis["ttc"]}
@@ -1309,10 +1309,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             ego.bounding_box_extent.x
         except:
             return"""
-        ttc, drac, mttc = calculate_ttc(ego,adv)
+        ttc, drac, mttc = calculate_ttc(ego, adv)
+        risk_coefficient = calculate_risk_coefficient(ego, adv)
         self.kpis["ttc"].append(ttc[0])
         self.kpis["drac"].append(drac[0])
         self.kpis["mttc"].append(mttc[0])
+        self.kpis["risk_coefficient"].append(risk_coefficient)
         #self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
         #TODO calc other KPIs also here
         #self.kpis["adv_yaw"].append(adv.get_transform().rotation.yaw)
