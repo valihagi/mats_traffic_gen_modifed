@@ -738,6 +738,51 @@ def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid
     plt.show()
     plt.close()
 
+def compute_bounding_box_corners(center, half_width, half_length, heading_deg):
+    """
+    Compute the 4 corners of a car's bounding box given its center, size, and heading.
+
+    Args:
+        center (tuple): (x, y) center of the car.
+        half_width (float): Half of the car's width (left/right from center).
+        half_length (float): Half of the car's length (front/back from center).
+        heading_deg (float): Heading angle in degrees (0° = east, 90° = north).
+
+    Returns:
+        list of tuples: List of 4 (x, y) corner points in order:
+                        [front-left, front-right, rear-right, rear-left]
+    """
+    x, y = center
+    theta = math.radians(heading_deg)
+
+    # Unit direction vectors
+    dx = math.cos(theta)
+    dy = math.sin(theta)
+
+    # Perpendicular vectors (to the left)
+    perp_dx = -dy
+    perp_dy = dx
+
+    # Compute 4 corners
+    front_left = (
+        x + dx * half_length + perp_dx * half_width,
+        y + dy * half_length + perp_dy * half_width
+    )
+    front_right = (
+        x + dx * half_length - perp_dx * half_width,
+        y + dy * half_length - perp_dy * half_width
+    )
+    rear_right = (
+        x - dx * half_length - perp_dx * half_width,
+        y - dy * half_length - perp_dy * half_width
+    )
+    rear_left = (
+        x - dx * half_length + perp_dx * half_width,
+        y - dy * half_length + perp_dy * half_width
+    )
+
+    return [front_left, front_right, rear_right, rear_left]
+
 def save_log_file(env, info, parameters, iteration, in_odd=True):
     # calc final metrics here:
     filename = f'/workspace/random_results/succesfull_runs/data{iteration}.json'

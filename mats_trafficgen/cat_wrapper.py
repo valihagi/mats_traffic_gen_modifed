@@ -7,7 +7,7 @@ import random
 import bezier
 import carla
 import gymnasium
-from helpers import calc_euclidian_distance, calculate_near_miss_ttc, calculate_risk_coefficient, calculate_ttc, plot_stuff, plot_trajectory_vs_network
+from helpers import calc_euclidian_distance, calculate_near_miss_ttc, calculate_risk_coefficient, calculate_ttc, compute_bounding_box_corners, plot_stuff, plot_trajectory_vs_network
 import numpy as np
 import optree
 import tensorflow as tf
@@ -813,53 +813,46 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         invalid_reasons = []
 
         for x, y, yaw in trajectory:
-            point = shapely.geometry.Point(x, y)
+            corners = compute_bounding_box_corners(x, y, 2.4, 1.0, yaw)
+            for x, y in corners:
+                point = shapely.geometry.Point(x, y)
 
-            # 1. Check if point is within the overall drivable area
-            if not network.drivableRegion.containsPoint(point):
-                #print(f"Point ({x}, {y}) is OUTSIDE the drivable area.")
-                invalid_points.append((x, y))
-                invalid_reasons.append("Drivable Area")
-                continue  # Move to next point
+                # 1. Check if point is within the overall drivable area
+                if not network.drivableRegion.containsPoint(point):
+                    print(f"Point ({x}, {y}) is OUTSIDE the drivable area.")
+                    invalid_points.append((x, y))
+                    invalid_reasons.append("Drivable Area")
+                    continue  # Move to next point
 
-            candidate_lanes = []
-            yaw_differences = []
+                candiate_lanes = []
+                yaw_differences = []
 
-            # 2. Check which lanes contain this point
-            for lane in network.lanes:
-                if lane.containsPoint(point):
-                    candidate_lanes.append(lane)
+                # 2. Check which lanes contain this point
+                for lane in network.lanes:
+                    if lane.containsPoint(point):
+                        candiate_lanes.append(lane)
 
-            if not candidate_lanes:
-                #print(f"Point ({x}, {y}) is NOT inside any lane polygon.")
-                invalid_points.append((x, y))
-                invalid_reasons.append("Lane Polygon")
-                continue  # Move to next point
 
-            # 3. Compute yaw difference for each valid lane
-            for lane in candidate_lanes:
-                if len(candidate_lanes) > 1:
-                    var = 0
-                # Get nearest point on lane centerline
-                nearest_pt = lane.centerline.lineString.interpolate(
-                    lane.centerline.lineString.project(point)
-                )
+                for lane in candiate_lanes:
+                    # Get nearest point on lane centerline
+                    nearest_pt = lane.centerline.lineString.interpolate(
+                        lane.centerline.lineString.project(point)
+                    )
 
-                # Compute expected lane direction
-                lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) + 1.57
+                    # Compute expected lane direction
+                    lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) + 1.57
 
-                lane_yaw = np.degrees(lane_yaw_rad) 
+                    lane_yaw = np.degrees(lane_yaw_rad) 
 
-                # Compute yaw difference and store
-                yaw_diff = abs(self.wrap_to_180(yaw - lane_yaw))
-                yaw_differences.append(yaw_diff)
+                    # Compute yaw difference and store
+                    yaw_diff = abs(self.wrap_to_180(yaw - lane_yaw))
+                    yaw_differences.append(yaw_diff)
 
-            # 4. Check if at least one lane has a valid yaw alignment
-            if all(diff > 80 for diff in yaw_differences):
-                #print(f"Yaw misalignment at ({x}, {y}), min diff={min(yaw_differences):.2f}°")
-                invalid_points.append((x, y))
-                invalid_reasons.append("Yaw Misalignment")
-                continue  # Move to next point
+                if all(diff > 80 for diff in yaw_differences):
+                    print(f"Yaw misalignment at ({x}, {y}), min diff={min(yaw_differences):.2f}°")
+                    invalid_points.append((x, y))
+                    invalid_reasons.append("Yaw Misalignment from one of the corner points of bounding box")
+                    continue  # Move to next point
 
 
         if invalid_points:
@@ -870,7 +863,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         else:
             print("Trajectory is VALID!")
             # 5. Plot results
-            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
+            plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
             return True 
         
     def score_lane_adherence(self, trajectory_original, weight=1):
