@@ -481,6 +481,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         ], axis=1)
         trajs_AV = np.expand_dims(trajs_AV, axis=0)
         for j, prob_OV in enumerate(probs_OV):
+            P4 = 1
             P1 = prob_OV
             traj_OV = trajs_OV[j][::5]
             #---------------------
@@ -491,7 +492,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
             ], axis=1)
             # CHeck if on roadgraph here:
-            if not self.check_on_roadgraph(full_adv_traj, j):
+            if not self.check_on_roadgraph(full_adv_traj[16:-2], j): # TODO need this becaus in first iteraion it stays still forever
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
                 """visualize_traj(
@@ -603,7 +604,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                         P3 = uncertainty
                         break
 
-                res[j] += P1 * P2 * P3
+                res[j] += P1 * P2 * P3 * P4
         if np.any(res):
             adv_traj_id = np.argmax(res)
         else:
@@ -762,7 +763,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if all(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
                     print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff} rad")
-                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "yaw")
+                    #plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "yaw")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
 
@@ -772,12 +773,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if edge_dist < 0.5:  # Too close to the edge
                     print(f"Too close to road edge at ({x}, {y}), dist={edge_dist:.2f}")
-                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "edge")
+                    #plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "edge")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
                 if surface_dist[0] > edge_dist + .2:
                     print(f"Closer to road edge than to road surface -> out of lane.")
-                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "edge")
+                    #plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "edge")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False
 
@@ -788,10 +789,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
                 if marking_type in solid_line_types and marking_dist < 0.5:
                     print(f"Crossed solid line at ({x}, {y}), dist={marking_dist:.2f}")
-                    plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "line")
+                    #plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "line")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
-        plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "passed")
+        #plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "passed")
         #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
     
@@ -816,7 +817,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
             # 1. Check if point is within the overall drivable area
             if not network.drivableRegion.containsPoint(point):
-                print(f"Point ({x}, {y}) is OUTSIDE the drivable area.")
+                #print(f"Point ({x}, {y}) is OUTSIDE the drivable area.")
                 invalid_points.append((x, y))
                 invalid_reasons.append("Drivable Area")
                 continue  # Move to next point
@@ -830,7 +831,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     candidate_lanes.append(lane)
 
             if not candidate_lanes:
-                print(f"Point ({x}, {y}) is NOT inside any lane polygon.")
+                #print(f"Point ({x}, {y}) is NOT inside any lane polygon.")
                 invalid_points.append((x, y))
                 invalid_reasons.append("Lane Polygon")
                 continue  # Move to next point
@@ -855,7 +856,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
             # 4. Check if at least one lane has a valid yaw alignment
             if all(diff > 80 for diff in yaw_differences):
-                print(f"Yaw misalignment at ({x}, {y}), min diff={min(yaw_differences):.2f}°")
+                #print(f"Yaw misalignment at ({x}, {y}), min diff={min(yaw_differences):.2f}°")
                 invalid_points.append((x, y))
                 invalid_reasons.append("Yaw Misalignment")
                 continue  # Move to next point
@@ -869,7 +870,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         else:
             print("Trajectory is VALID!")
             # 5. Plot results
-            plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
+            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
             return True 
         
     def score_lane_adherence(self, trajectory_original, weight=1):
@@ -964,17 +965,17 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             'state/past/x': np.full([128, 10], -1, dtype=np.float32),
             'state/past/y': np.full([128, 10], -1, dtype=np.float32),
             'state/past/z': np.full([128, 10], -1, dtype=np.float32),
-            'state/future/bbox_yaw': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/height': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/length': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/valid': np.full([128, 80], 0, dtype=np.int64),
-            'state/future/vel_yaw': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/velocity_x': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/velocity_y': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/width': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/x': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/y': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/z': np.full([128, 80], -1, dtype=np.float32)
+            'state/future/bbox_yaw': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/height': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/length': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/valid': np.full([128, 140], 0, dtype=np.int64),
+            'state/future/vel_yaw': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/velocity_x': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/velocity_y': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/width': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/x': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/y': np.full([128, 140], -1, dtype=np.float32),
+            'state/future/z': np.full([128, 140], -1, dtype=np.float32)
         }
 
         for i, actor_id in enumerate(self.agents):
@@ -984,7 +985,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             state_features["state/is_sdc"][i] = 1 if actor_id == self._ego_agent else 0
             state_features["state/tracks_to_predict"][i] = i < len(self._trajectories)
 
-            for t in range(min(len(self._trajectories[actor_id]), 91)):
+            for t in range(min(len(self._trajectories[actor_id]), 140)):
                 offset = 0
                 if t < 10:
                     time = "past"

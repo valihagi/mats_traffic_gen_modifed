@@ -137,8 +137,14 @@ def joint_policy(agents):
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=10, parameters=None):
+                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None):
+    #run_docker_restart_command(carla_container_name, default_terminal)
+    obs, info = env.reset(options={
+                "scene": scene
+            })
+    print("test")
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
+    #run_docker_restart_command(autoware_container_name, default_terminal)
         
     if scene is not None:
         agents = get_agents(env)
@@ -153,7 +159,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         )
         agents["adversary"] = adv_agent
 
-    client = carla.Client(args.carla_host, args.carla_port)
+    #client = carla.Client(args.carla_host, args.carla_port)
     
     done = False
     CarlaDataProvider.get_world().tick()
@@ -244,55 +250,58 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     print("----------------------")
     print("restarting containers")
     
+    #if iteration % 8 == 0:
+    """print("Also restarting carla this iteartion to prevent it from segfaulting")
+    run_docker_restart_command(carla_container_name, default_terminal)
+    print("sleeping")
+    time.sleep(20)
+    print("waking up")"""
     run_docker_restart_command(autoware_container_name, default_terminal)
-    if iteration % 8 == 0:
-        print("Also restarting carla this iteartion to prevent it from segfaulting")
-        run_docker_restart_command(carla_container_name, default_terminal)
     run_docker_restart_command(bridge_container_name, default_terminal)
 
 
     #--------------------return if we are not within a CAT run-----------------------
+    print(strategy)
     if strategy != "cat":
         # calc metrics and return them / also save trajectories that where executed
         save_log_file(env, info, parameters, iteration)
         return
-    
+    print(num_iterations)
     for iteration in range(num_iterations):
         print(f"Starting ADV scenario iteration {iteration} \n")
         aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
-        try:
-            obs, info = env.reset(options={
-                "scene": scene,
-                "adversarial": True
-            })
-            print("Reseting the environment")
-            break
-        except:
-            print("Carla seems to be down, taking a short timeout and trying again...")
-            time.sleep(60)
+        obs, info = env.reset(options={
+            "scene": scene,
+            "adversarial": True
+        })
+        print("Reseting the environment")
+
 
         #gt_yaw = info["kpis"]["adv_yaw"]
         #gt_acc = info["kpis"]["adv_acc"]
-
+        print("getting_traj")
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
             for point in info["adversary"]["adv_trajectory"]
         ]
+        print("gottraj")
         adv_agent = TrajectoryFollowingAgent(
             vehicle=env.actors["adversary"],
             trajectory=traj
         )
+        print("getting agents")
         if scene is not None:
             agents = get_agents(env)
         else:
             agents = {}
             agents["ego_vehicle"] = {"ego_vehicle"}
         agents["adversary"] = adv_agent
+        print("got agents")
         
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(750)):
+        for i in tqdm(range(550)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -325,6 +334,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         print("-------Starting now:-------------")
 
         done = False
+        counter = 0
         #-----------------------------main loop-----------------------------------
         while not done:
             actions = joint_policy(agents)
@@ -334,15 +344,20 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
                 break
             #done = all(done.values())
             env.render()
+            counter += 1
             if counter > WaitingTime.MAXTIMESTEPS:
                 done = True
             else:
                 done = False
             time.sleep(.01)
+            if counter > WaitingTime.MAXTIMESTEPS:
+                done = True
+            else:
+                done = False
         #---------------------------------------------------------------------------
 
-        other_yaw = info["kpis"]["adv_yaw"]
-        other_acc = info["kpis"]["adv_acc"]
+        #other_yaw = info["kpis"]["adv_yaw"]
+        #other_acc = info["kpis"]["adv_acc"]
         #ttc = min(info["kpis"]["ttc"])
 
         #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
@@ -353,25 +368,14 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         print("----------------------")
         print("restarting containers")
 
-        run_docker_restart_command(autoware_container_name, default_terminal)
-        if iteration % 8 == 0:
+        """if iteration % 8 == 0:
             print("Also restarting carla this iteartion to prevent it from segfaulting")
             run_docker_restart_command(carla_container_name, default_terminal)
+            time.sleep(5)"""
+        run_docker_restart_command(autoware_container_name, default_terminal)
         run_docker_restart_command(bridge_container_name, default_terminal)
-        
-        #saving
-        ego_traj = env._trajectories["ego"]
-        adv_traj = env._trajectories["adversary"]
 
-        data = {
-            "ego_traj": ego_traj,
-            "adv_traj": adv_traj,
-            "kpis": info["kpis"]
-        }
-
-        with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
-            json.dump(data, f)
-        return
+        save_log_file(env, info, parameters, iteration)
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,

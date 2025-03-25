@@ -41,9 +41,9 @@ from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "silly_robinson"
+autoware_container_name = "pensive_lumiere"
 bridge_container_name = "sweet_swartz"
-carla_container_name = "vigorous_germain"
+carla_container_name = "stupefied_villani"
 
 autoware_terminal = "/dev/pts/6"
 bridge_terminal = "/dev/pts/7"
@@ -278,7 +278,7 @@ def main(args):
                 save_log_file(env, info, parameters, iteration_counter, in_odd=False)
                 continue
             ran_counter += 1
-            visualize_traj(
+            """visualize_traj(
                 ego_traj[4:-4, 0],
                 ego_traj[4:-4, 1],
                 ego_traj[4:-4, 2],
@@ -287,12 +287,14 @@ def main(args):
                 (0, 5, 0),
                 CarlaDataProvider.get_world(),
                 CarlaDataProvider.get_map()
-            )
+            )"""
             
         elif strategy == "cat":
             print("USING CAT")
             obs, info = env.reset(options={
             })
+            adv_traj = None
+            parameters = None
 
         elif strategy == "cat_iterative":
             print("USING CAT iteratively")
@@ -302,6 +304,33 @@ def main(args):
         else:
             print("unknown startegy please check the config.")
             return
+        
+        """world = CarlaDataProvider.get_world()
+        ego = env.actors["adversary"]
+        ego_loc = ego.get_location()
+        color = carla.Color(*(100,0,0))
+        arr = [[104.5, 27.5],
+               [104.5, 19],
+               [101, 15.5],
+               [97.5, 13.5],
+               [97.5, 17.5],
+               [101, 20],
+               [102.5, 22.5]]
+        
+        for point in arr:
+            loc = carla.Location(point[0], point[1], z=5)
+            world.debug.draw_point(loc, size=.5, color=color)
+
+        spec = world.get_spectator()
+        spec.set_transform(carla.Transform(
+            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 60),
+            carla.Rotation(pitch=-90)
+        ))
+
+        settings = world.get_settings()
+        world.apply_settings(settings)
+        world.tick()
+        time.sleep(100)"""
 
         run_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
@@ -331,6 +360,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="random")
+    parser.add_argument('--strategy', type=str, default="cat")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)
