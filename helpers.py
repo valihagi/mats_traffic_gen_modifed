@@ -738,7 +738,7 @@ def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid
     plt.show()
     plt.close()
 
-def compute_bounding_box_corners(center, half_width, half_length, heading_deg):
+def compute_bounding_box_corners(x, y, half_width, half_length, heading_deg):
     """
     Compute the 4 corners of a car's bounding box given its center, size, and heading.
 
@@ -752,7 +752,6 @@ def compute_bounding_box_corners(center, half_width, half_length, heading_deg):
         list of tuples: List of 4 (x, y) corner points in order:
                         [front-left, front-right, rear-right, rear-left]
     """
-    x, y = center
     theta = math.radians(heading_deg)
 
     # Unit direction vectors

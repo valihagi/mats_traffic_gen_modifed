@@ -492,7 +492,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
             ], axis=1)
             # CHeck if on roadgraph here:
-            if not self.check_on_roadgraph(full_adv_traj[16:-2], j): # TODO need this becaus in first iteraion it stays still forever
+            if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
                 """visualize_traj(
@@ -503,6 +503,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     2.9,
                     (5, 5, 5)
                 )"""
+                res[j] += 0
+                min_dist[j] = 10000000
+                continue
             #------------------------
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
@@ -605,6 +608,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                         break
 
                 res[j] += P1 * P2 * P3 * P4
+                print(f"P1: {P1}, P2: {P2}, P3: {P3}, P4: {P4}")
+        print("propabilities:---------------------------------")
+        print(res)
         if np.any(res):
             adv_traj_id = np.argmax(res)
         else:
@@ -626,6 +632,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             full_adv_traj,
             np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
         ], axis=1)
+        trajectory = [(x, -y, -z) for x, y, z in full_adv_traj]
+        plot_trajectory_vs_network(trajectory, self._network, None, 0, None, "final_chosen_traj")
         adv_traj_original = np.concatenate([
             adv_traj_original,
             np.rad2deg(get_polyline_yaw(adv_traj_original)).reshape(-1, 1)
@@ -762,7 +770,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     yaw_diff.append(abs(yaw - closest_surface_yaw))
 
                 if all(x > 45 for x in yaw_diff):  # Allow max 45-degree deviation
-                    print(f"Yaw misalignment at ({x}, {y}), diff={yaw_diff} rad")
+                    print(f"Yaw misalignment at ({x}, {y})")
                     #plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, "yaw")
                     #self.plot_stuff_traj(trajectory, idx1)
                     return False  
@@ -824,7 +832,33 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
         return corrected
     
-    def check_on_roadgraph(self, trajectory_original, idx):
+
+    def is_trajectory_within_speed_limit(self, trajectory, speed_limit_mps, timestep=0.05):
+        """
+        Check if the trajectory ever exceeds the speed limit.
+
+        Args:
+            trajectory (np.ndarray): An array of shape (N, 3), where each row is [x, y, yaw].
+            speed_limit_mps (float): Speed limit in meters per second.
+            timestep (float): Time between each trajectory point in seconds (default: 0.05s).
+
+        Returns:
+            bool: True if the trajectory is within the speed limit at all times, False otherwise.
+        """
+        # Calculate distances between consecutive points
+        trajectory = trajectory[2:-2]
+        trajectory = np.asarray(trajectory)
+        deltas = np.diff(trajectory[:, :2], axis=0)  # Only use x, y
+        distances = np.linalg.norm(deltas, axis=1)   # Euclidean distance between consecutive points
+
+        # Compute speed at each step
+        speeds = distances / timestep
+
+        # Check if any speed exceeds the speed limit
+        return np.all(speeds <= speed_limit_mps)
+    
+    
+    def check_on_roadgraph(self, trajectory_original, idx, traj_ov=None, debug=False):
         """
         Checks if the given trajectory is valid based on the Scenic Network object and plots the results.
 
@@ -835,23 +869,43 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             bool: True if trajectory is valid, False otherwise.
         """
+        network = self._network
         trajectory_yaw_corrected = self.correct_yaw_by_distance_step3(trajectory_original)
         trajectory = [(x, -y, -z) for x, y, z in trajectory_yaw_corrected]
-        network = self._network
+        if traj_ov is not None:
+            adv_vel = np.linalg.norm(get_polyline_vel(traj_ov), axis=1).reshape(-1, 1)
+            if max(adv_vel) > 55:
+                print(f"Speed limit exceeded")
+                if True:    
+                    print(f"Trajectory INVALID:  violations found.")
+                    plot_trajectory_vs_network(trajectory, network, None, idx, None, "speed_limit/invalid_trajectory_debug")
+                return False
+        
+        """if not self.is_trajectory_within_speed_limit(trajectory, 17):
+            print(f"Speed limit exceeded")
+            if True:    
+                print(f"Trajectory INVALID:  violations found.")
+                plot_trajectory_vs_network(trajectory, network, None, idx, None, "speed_limit/invalid_trajectory_debug")
+            return False"""
+        
         invalid_points = []
         invalid_reasons = []
 
-        for x, y, yaw in trajectory:
-            corners = compute_bounding_box_corners(x, y, 2.4, 1.0, yaw)
+        for x1, y1, yaw in trajectory:
+            center_point = shapely.geometry.Point(x1, y1)
+
+            # 1. Check if point is within the overall drivable area
+            if not network.drivableRegion.containsPoint(center_point):
+                print(f"Point ({x1}, {y1}) is OUTSIDE the drivable area.")
+                invalid_points.append((x1, y1))
+                invalid_reasons.append("Drivable Area")
+                if not debug:
+                    break
+                continue 
+
+            corners = compute_bounding_box_corners(x1, y1, .8, 2.2, yaw)
             for x, y in corners:
                 point = shapely.geometry.Point(x, y)
-
-                # 1. Check if point is within the overall drivable area
-                if not network.drivableRegion.containsPoint(point):
-                    print(f"Point ({x}, {y}) is OUTSIDE the drivable area.")
-                    invalid_points.append((x, y))
-                    invalid_reasons.append("Drivable Area")
-                    continue  # Move to next point
 
                 candiate_lanes = []
                 yaw_differences = []
@@ -861,6 +915,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     if lane.containsPoint(point):
                         candiate_lanes.append(lane)
 
+                if len(candiate_lanes) < 1:
+                    continue
 
                 for lane in candiate_lanes:
                     # Get nearest point on lane centerline
@@ -878,21 +934,23 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     yaw_differences.append(yaw_diff)
 
                 if all(diff > 80 for diff in yaw_differences):
-                    print(f"Yaw misalignment at ({x}, {y}), min diff={min(yaw_differences):.2f}°")
+                    print(f"Yaw misalignment at ({x}, {y})")
                     invalid_points.append((x, y))
                     invalid_reasons.append("Yaw Misalignment from one of the corner points of bounding box")
+                    if not debug:
+                        break
                     continue  # Move to next point
 
 
         if invalid_points:
-            print(f"Trajectory INVALID: {len(invalid_points)} violations found.")
-            # 5. Plot results
-            #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid_trajectory_debug")
+            if True:    
+                print(f"Trajectory INVALID: {len(invalid_points)} violations found.")
+                plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid/invalid_trajectory_debug")
             return False  
         else:
-            print("Trajectory is VALID!")
-            # 5. Plot results
-            plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid_trajectory_debug")
+            if True:   
+                print("Trajectory is VALID!")
+                plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid/valid_trajectory_debug")
             return True 
         
     def score_lane_adherence(self, trajectory_original, weight=1):
@@ -987,17 +1045,17 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             'state/past/x': np.full([128, 10], -1, dtype=np.float32),
             'state/past/y': np.full([128, 10], -1, dtype=np.float32),
             'state/past/z': np.full([128, 10], -1, dtype=np.float32),
-            'state/future/bbox_yaw': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/height': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/length': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/valid': np.full([128, 140], 0, dtype=np.int64),
-            'state/future/vel_yaw': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/velocity_x': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/velocity_y': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/width': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/x': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/y': np.full([128, 140], -1, dtype=np.float32),
-            'state/future/z': np.full([128, 140], -1, dtype=np.float32)
+            'state/future/bbox_yaw': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/height': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/length': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/valid': np.full([128, 80], 0, dtype=np.int64),
+            'state/future/vel_yaw': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/velocity_x': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/velocity_y': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/width': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/x': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/y': np.full([128, 80], -1, dtype=np.float32),
+            'state/future/z': np.full([128, 80], -1, dtype=np.float32)
         }
 
         for i, actor_id in enumerate(self.agents):
@@ -1007,7 +1065,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             state_features["state/is_sdc"][i] = 1 if actor_id == self._ego_agent else 0
             state_features["state/tracks_to_predict"][i] = i < len(self._trajectories)
 
-            for t in range(min(len(self._trajectories[actor_id]), 140)):
+            for t in range(min(len(self._trajectories[actor_id]), 80)):
                 offset = 0
                 if t < 10:
                     time = "past"

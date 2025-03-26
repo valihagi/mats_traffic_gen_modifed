@@ -41,9 +41,9 @@ from active_doe_module.webapi_client import active_doe_client
 from enum import IntEnum
 
 class WaitingTime(IntEnum):
-    STARTTRIGGERSPEED = 1.5
+    STARTTRIGGERSPEED = 2
     WAITFORAUTONOMOUS = 40
-    MAXSTARTDELAY = 180
+    MAXSTARTDELAY = 250
     MAXTIMESTEPS = 320
 
 
@@ -197,11 +197,18 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     control_change_process = change_control_mode(autoware_container_name, default_terminal)
     
     print("\n starting autoware...")
-    for i in tqdm(range(WaitingTime.MAXSTARTDELAY)):
+    """for i in tqdm(range(WaitingTime.MAXSTARTDELAY)):
         #TODO implement wait for ego to have specific speed
         vel = env.actors["ego_vehicle"].get_velocity()
         speed = np.linalg.norm([vel.x, vel.y])
         if speed > WaitingTime.STARTTRIGGERSPEED:
+            break
+        time.sleep(.01)
+        CarlaDataProvider.get_world().tick()"""
+    for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
+        #TODO implement wait for ego to have specific speed
+        pos = env.actors["ego_vehicle"].get_location()
+        if pos.y < 45:
             break
         time.sleep(.01)
         CarlaDataProvider.get_world().tick()
@@ -323,11 +330,19 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             
         control_change_process = change_control_mode(autoware_container_name, default_terminal)
         
-        print("starting autoware....")
-        for i in tqdm(range(WaitingTime.MAXSTARTDELAY)):
+        print("\n starting autoware...")
+        """for i in tqdm(range(WaitingTime.MAXSTARTDELAY)):
+            #TODO implement wait for ego to have specific speed
             vel = env.actors["ego_vehicle"].get_velocity()
             speed = np.linalg.norm([vel.x, vel.y])
             if speed > WaitingTime.STARTTRIGGERSPEED:
+                break
+            time.sleep(.01)
+            CarlaDataProvider.get_world().tick()"""
+        for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
+            #TODO implement wait for ego to have specific speed
+            pos = env.actors["ego_vehicle"].get_location()
+            if pos.y < 45:
                 break
             time.sleep(.01)
             CarlaDataProvider.get_world().tick()
@@ -378,8 +393,8 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         save_log_file(env, info, parameters, iteration)
 
 
-def run_dummy_simulation(autoware_container_name, bridge_container_name, default_terminal, autoware_terminal,
-                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50):
+def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
+                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, parameters=None, num_iterations=50):
         
     if scene is not None:
         agents = get_agents(env)
@@ -410,7 +425,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
             break
         #done = all(done.values())
         env.render()
-        if counter > WaitingTime.MAXTIMESTEPS:
+        if counter > 100:
             done = True
         else:
             done = False
@@ -430,8 +445,8 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
             "adversarial": True
         })
 
-        gt_yaw = info["kpis"]["adv_yaw"]
-        gt_acc = info["kpis"]["adv_acc"]
+        #gt_yaw = info["kpis"]["adv_yaw"]
+        #gt_acc = info["kpis"]["adv_acc"]
 
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
@@ -448,25 +463,34 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
             agents["ego_vehicle"] = {"ego_vehicle"}
         agents["adversary"] = adv_agent
 
+        print("hererererere-----------------------")
+        for i in range(len(traj)):
+            print(traj[i])
+
 
         done = False
         #-----------------------------main loop-----------------------------------
+        counter = 0
         while not done:
+            counter += 1
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
             if env.coll:
                 collision = True
                 break
             done = all(done.values())
+            done = False
+            if counter > 250:
+                done = True
             env.render()
             time.sleep(.02)
         #---------------------------------------------------------------------------
 
-        other_yaw = info["kpis"]["adv_yaw"]
-        other_acc = info["kpis"]["adv_acc"]
+        #other_yaw = info["kpis"]["adv_yaw"]
+        #other_acc = info["kpis"]["adv_acc"]
         #ttc = min(info["kpis"]["ttc"])
         #save stuff here
-        ego_traj = env._trajectories["ego"]
+        """ego_traj = env._trajectories["ego"]
         adv_traj = env._trajectories["adversary"]
 
         data = {
@@ -476,7 +500,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, default
         }
 
         with open(f'/workspace/random_results/data{iteration}.json', 'w') as f:
-            json.dump(data, f)
+            json.dump(data, f)"""
 
         #print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
         #print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")

@@ -35,7 +35,7 @@ class TrajectoryFollowingAgent(BasicAgent):
             #TODO need to decide whether it should just continue straight or it should brake
             ctrl = carla.VehicleControl()
             ctrl.throttle = 0
-            ctrl.brake = 1
+            ctrl.brake = .2
             ctrl.steer = 0
             return ctrl
 
