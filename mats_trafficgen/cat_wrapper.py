@@ -796,6 +796,34 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         #self.plot_stuff_traj(trajectory, idx1)
         return True  # If no violations occur
     
+    def correct_yaw_by_distance_step3(self, points_array, min_distance=0.5):
+        """
+        Adjusts yaw of points based on distance from the point 3 steps before.
+        If the distance is less than `min_distance`, yaw is copied from the last valid point.
+
+        Parameters:
+            points (list of (x, y, yaw)): Input list of points.
+            min_distance (float): Minimum required distance between points to keep original yaw.
+
+        Returns:
+            list of (x, y, yaw): Updated list with corrected yaw values.
+        """
+        if points_array.shape[0] < 4:
+            return points_array.copy()
+
+        corrected = points_array.copy()
+        reference_point = corrected[0]
+
+        for j in range(3, len(corrected), 3):
+            dist = np.hypot(corrected[j][0] - reference_point[0],
+                            corrected[j][1] - reference_point[1])
+            if dist >= min_distance:
+                new_yaw = corrected[j][2]
+                corrected[:j, 2] = new_yaw  # update yaw for all earlier points
+                break  # done once first valid point is found
+
+        return corrected
+    
     def check_on_roadgraph(self, trajectory_original, idx):
         """
         Checks if the given trajectory is valid based on the Scenic Network object and plots the results.
@@ -807,7 +835,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         Returns:
             bool: True if trajectory is valid, False otherwise.
         """
-        trajectory = [(x, -y, -z) for x, y, z in trajectory_original]
+        trajectory_yaw_corrected = self.correct_yaw_by_distance_step3(trajectory_original)
+        trajectory = [(x, -y, -z) for x, y, z in trajectory_yaw_corrected]
         network = self._network
         invalid_points = []
         invalid_reasons = []
