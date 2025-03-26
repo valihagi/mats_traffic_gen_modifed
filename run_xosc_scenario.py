@@ -28,7 +28,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_msgs.msg import Header
 from pose_publisher import PosePublisher
-from helpers import generate_even_timestamps, generate_parametrized_adversarial_route, generate_random_adversarial_route, generate_timestamps, run_docker_command, save_log_file, visualize_traj
+from helpers import create_random_traj, generate_even_timestamps, generate_parametrized_adversarial_route, generate_random_adversarial_route, generate_timestamps, run_docker_command, save_log_file, visualize_traj
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
@@ -248,8 +248,16 @@ def main(args):
                         print("Carla seems to be down, taking a short timeout and trying again...")
                         time.sleep(60)
             already_reset = False
-            times = generate_timestamps(100, 80, .6, 3.5)
-            adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
+            #times = generate_timestamps(100, 80, .6, 3.5)
+            #adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
+            ego = env.actors["ego_vehicle"]
+            ego_loc = ego.get_location()
+            adv_traj = create_random_traj((ego_loc.x, -ego_loc.y), env._network)
+            #random offset from start position
+            random_offset = random.uniform(-10, 10)
+            ego_loc.y = ego_loc.y - random_offset
+            new_transform = carla.Transform(location=ego_loc, rotation=ego.get_transform().rotation)
+            ego.set_transform(new_transform)
             """env = mats_gym.openscenario_env(
                 scenario_files="scenarios/open_scenario/test.xosc",
                 host=args.carla_host,

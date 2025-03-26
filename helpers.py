@@ -13,6 +13,9 @@ from TwoDimTTC import TTC
 import pandas as pd
 import shapely.geometry
 from shapely.geometry import Point, Polygon
+from scenic.domains.driving.roads import Lane
+from scenic.domains.driving.roads import Network
+from scipy.interpolate import interp1d
 
 from cat.advgen.adv_generator import get_polyline_yaw
 import xml.etree.ElementTree as ET
@@ -268,6 +271,146 @@ def generate_parametrized_adversarial_route(env, num_waypoints, times):
     print(f"Updated XML saved as {modified_xml_file}")
 
     return trajectory, ego_traj, ego_width, ego_length
+
+def generate_trajectories_from_position(start_position, heading_deg, road_network: Network, max_depth=3):
+    """
+    Generate all possible trajectories from a starting position and heading on a Scenic road network.
+
+    Args:
+        start_position (tuple): (x, y) world position of the vehicle.
+        heading_deg (float): Heading angle in degrees (0 = east, 90 = north, etc.).
+        road_network (Network): Scenic road network.
+        max_depth (int): Max depth to search through successor lanes.
+
+    Returns:
+        list of list of (x, y): Each trajectory is a list of (x, y) tuples.
+    """
+    min_distance = 30
+    max_distance = 60
+    car_point = Point(start_position)
+
+    all_trajectories = []
+
+    # Utility: Compute distance between two (x, y) points
+    def dist(p1, p2):
+        return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+
+    # Compute length of a path
+    def compute_length(points):
+        return sum(dist(points[i], points[i - 1]) for i in range(1, len(points)))
+
+    # Remove overlapping (prefix-contained) trajectories
+    def remove_overlapping_subtrajectories(trajectories):
+        sorted_trajectories = sorted(trajectories, key=len, reverse=True)
+        filtered = []
+        for traj in sorted_trajectories:
+            if not any(traj == other[:len(traj)] for other in filtered if len(traj) <= len(other)):
+                filtered.append(traj)
+        return filtered
+
+    # Step 1: Find the starting lane
+    closest_lane = None
+    for lane in road_network.lanes:
+        if lane.containsPoint(car_point):
+            closest_lane = lane
+            break
+
+    if not closest_lane or not closest_lane.centerline:
+        return []
+
+    # Step 2: Get the start index on the centerline **forward only**
+    centerline_points = [(pt[0], pt[1]) for pt in closest_lane.centerline.points]
+    dists = [dist(start_position, pt) for pt in centerline_points]
+    closest_index = dists.index(min(dists))
+
+    # Step 3: Skip centerline points behind the start_position
+    # Use heading to determine direction (optional — currently we just go forward from closest)
+    forward_points = centerline_points[closest_index:]
+
+    def dfs(current_lane: Lane, path_so_far, distance_so_far, depth):
+        if depth > max_depth or distance_so_far >= max_distance:
+            return
+
+        centerline = [(pt[0], pt[1]) for pt in current_lane.centerline.points]
+        if not centerline:
+            return
+
+        # Decide starting point list
+        if not path_so_far:
+            # We're at the start — use sliced forward points
+            points_to_add = forward_points
+        else:
+            # Otherwise, add full centerline skipping first point
+            points_to_add = centerline[1:]
+
+        new_path = path_so_far[:]
+        last_point = new_path[-1]
+        current_dist = distance_so_far
+
+        for pt in points_to_add:
+            step_dist = dist(last_point, pt)
+            if current_dist + step_dist > max_distance:
+                break
+            new_path.append(pt)
+            current_dist += step_dist
+            last_point = pt
+
+            if min_distance <= current_dist <= max_distance:
+                all_trajectories.append(new_path[:])
+
+        # Continue to successors
+        for maneuver in current_lane.maneuvers:
+            next_lane = maneuver.connectingLane or maneuver.endLane
+            if next_lane and next_lane.centerline:
+                dfs(next_lane, new_path, current_dist, depth + 1)
+
+    # Step 4: Begin traversal from the start position and trimmed centerline
+    dfs(closest_lane, [start_position], 0.0, 0)
+
+    return remove_overlapping_subtrajectories(all_trajectories)
+
+def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
+    """
+    Resample a trajectory to have `num_points` with equal arc-length spacing,
+    preserving the first and last points.
+
+    Args:
+        trajectory_xy (list or np.ndarray): Array of shape (N, 2) with [x, y] points.
+        num_points (int): Number of resampled points (default: 80).
+
+    Returns:
+        np.ndarray: Resampled trajectory of shape (num_points, 2).
+    """
+    trajectory_xy = np.asarray(trajectory_xy)
+
+    # Compute cumulative arc-length (distance)
+    deltas = np.diff(trajectory_xy, axis=0)
+    segment_lengths = np.linalg.norm(deltas, axis=1)
+    arc_lengths = np.concatenate([[0], np.cumsum(segment_lengths)])
+
+    total_length = arc_lengths[-1]
+    desired_arc_lengths = np.linspace(0, total_length, num_points)
+
+    # Interpolate x and y independently based on arc-length
+    interp_x = interp1d(arc_lengths, trajectory_xy[:, 0], kind='linear')
+    interp_y = interp1d(arc_lengths, trajectory_xy[:, 1], kind='linear')
+
+    resampled_x = interp_x(desired_arc_lengths)
+    resampled_y = interp_y(desired_arc_lengths)
+
+    return np.stack((resampled_x, resampled_y), axis=1)
+
+def create_random_traj(ego_loc, network):
+    trajs = generate_trajectories_from_position((ego_loc.x, -ego_loc.y), 0, network)
+    traj1 = resample_trajectory_to_equal_distance(trajs[0])
+
+    random_max_speed = random.uniform(3, 10)
+    random_acc = random.uniform(3, 8)
+    trajectory = []
+    for i in range(len(traj1)):
+        speed = min(random_max_speed, (i + 1) ** random_acc)
+        point = traj1[i]
+        trajectory.append([point[0], -point[1], speed])
 
 def generate_timestamps(total_distance, num_points, acc, vmax):
     # Phase 1: Acceleration phase
