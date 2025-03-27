@@ -374,6 +374,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="random")
+    parser.add_argument('--strategy', type=str, default="cat")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)
