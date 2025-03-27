@@ -955,3 +955,34 @@ def save_log_file(env, info, parameters, iteration, in_odd=True):
 
     with open(filename, 'w') as f:
         json.dump(data, f)
+
+
+def resample_trajectory(points: np.ndarray, target_length: int) -> np.ndarray:
+    """
+    Resample a trajectory to a new number of points using arc-length interpolation.
+
+    Args:
+        points (np.ndarray): Original array of shape (N, 2) with [x, y] points.
+        target_length (int): Desired number of points in the resampled trajectory.
+
+    Returns:
+        np.ndarray: Resampled trajectory of shape (target_length, 2)
+    """
+    if len(points) < 2 or target_length < 2:
+        raise ValueError("Both input and target length must be at least 2.")
+    
+    # Step 1: Compute cumulative distances (arc length)
+    deltas = np.diff(points, axis=0)
+    segment_lengths = np.linalg.norm(deltas, axis=1)
+    cumulative_lengths = np.insert(np.cumsum(segment_lengths), 0, 0.0)
+
+    # Step 2: Generate new equally spaced arc length values
+    total_length = cumulative_lengths[-1]
+    new_lengths = np.linspace(0, total_length, target_length)
+
+    # Step 3: Interpolate x and y separately
+    x_interp = np.interp(new_lengths, cumulative_lengths, points[:, 0])
+    y_interp = np.interp(new_lengths, cumulative_lengths, points[:, 1])
+
+    # Step 4: Combine to final result
+    return np.stack([x_interp, y_interp], axis=-1)

@@ -7,7 +7,7 @@ import random
 import bezier
 import carla
 import gymnasium
-from helpers import calc_euclidian_distance, calculate_near_miss_ttc, calculate_risk_coefficient, calculate_ttc, compute_bounding_box_corners, plot_stuff, plot_trajectory_vs_network
+from helpers import calc_euclidian_distance, calculate_near_miss_ttc, calculate_risk_coefficient, calculate_ttc, compute_bounding_box_corners, plot_stuff, plot_trajectory_vs_network, resample_trajectory
 import numpy as np
 import optree
 import tensorflow as tf
@@ -463,7 +463,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         return features, adv_traj
 
     def _select_colliding_trajectory(self, features, pred_score, pred_trajectory):
+        trajs_AV = np.concatenate([
+            features["state/future/x"][self.agents.index(self._ego_agent)].reshape(-1, 1),
+            features["state/future/y"][self.agents.index(self._ego_agent)].reshape(-1, 1)
+        ], axis=1)
+        trajs_AV = np.expand_dims(trajs_AV, axis=0)
+        av_len = len(traj_AV[0])
         trajs_OV = pred_trajectory[self.agents.index(self._adv_agent)]
+        trajs_OV = [resample_trajectory(traj, av_len) for traj in trajs_OV]
         probs_OV = pred_score[self.agents.index(self._adv_agent)]
         probs_OV[6:] = probs_OV[6]
         probs_OV = np.exp(probs_OV)
@@ -475,11 +482,6 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         adversary = self.actors[adversary]
         adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
         width, length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
-        trajs_AV = np.concatenate([
-            features["state/future/x"][self.agents.index(self._ego_agent)].reshape(-1, 1),
-            features["state/future/y"][self.agents.index(self._ego_agent)].reshape(-1, 1)
-        ], axis=1)
-        trajs_AV = np.expand_dims(trajs_AV, axis=0)
         for j, prob_OV in enumerate(probs_OV):
             P4 = 1
             P1 = prob_OV
