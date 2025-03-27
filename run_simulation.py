@@ -142,7 +142,9 @@ def joint_policy(agents, counter=None):
                     return actions
             if agent != "ego_vehicle":
                 ctrl = agents[agent].run_step()
-                actions[agent] = np.array([.3, 0, 0])
+                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+            else:
+                actions[agent] = np.array([.60, 0, 0])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
@@ -242,7 +244,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             end = time.time()
             print(end - start)
         counter += 1
-        actions = joint_policy(agents, counter)
+        actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
         time.sleep(.05)
         if env.coll:
@@ -426,7 +428,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
     counter = 0
     while not done:
         counter += 1
-        actions = joint_policy(agents, counter)
+        actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
         time.sleep(.02)
         if env.coll:

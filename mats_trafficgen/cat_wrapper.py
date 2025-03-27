@@ -468,7 +468,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             features["state/future/y"][self.agents.index(self._ego_agent)].reshape(-1, 1)
         ], axis=1)
         trajs_AV = np.expand_dims(trajs_AV, axis=0)
-        av_len = len(traj_AV[0])
+        av_len = len(trajs_AV[0])
         trajs_OV = pred_trajectory[self.agents.index(self._adv_agent)]
         trajs_OV = [resample_trajectory(traj, av_len) for traj in trajs_OV]
         probs_OV = pred_score[self.agents.index(self._adv_agent)]
@@ -878,7 +878,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             adv_vel = np.linalg.norm(get_polyline_vel(traj_ov), axis=1).reshape(-1, 1)
             if max(adv_vel) > 55:
                 print(f"Speed limit exceeded")
-                if True:    
+                if debug:    
                     print(f"Trajectory INVALID:  violations found.")
                     plot_trajectory_vs_network(trajectory, network, None, idx, None, "speed_limit/invalid_trajectory_debug")
                 return False
@@ -945,12 +945,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
 
         if invalid_points:
-            if True:    
+            if debug:    
                 print(f"Trajectory INVALID: {len(invalid_points)} violations found.")
                 plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid/invalid_trajectory_debug")
             return False  
         else:
-            if True:   
+            if debug:   
                 print("Trajectory is VALID!")
                 plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid/valid_trajectory_debug")
             return True 
