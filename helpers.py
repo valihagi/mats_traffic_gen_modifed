@@ -403,11 +403,12 @@ def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
 
 def create_random_traj(ego_loc, network):
     trajs = generate_trajectories_from_position(ego_loc, 0, network)
-    idx = random.uniform(0, len(trajs) - 1) 
+    idx = random.randint(0, len(trajs) - 1) 
     traj1 = resample_trajectory_to_equal_distance(trajs[idx])
+    traj1 = traj1[:120]
 
-    random_max_speed = random.uniform(3, 10)
-    random_acc = random.uniform(3, 8)
+    random_max_speed = random.uniform(2.5, 7)
+    random_acc = random.uniform(.4, 1.2)
     trajectory = []
     for i in range(len(traj1)):
         speed = min(random_max_speed, (i + 1) ** random_acc)

@@ -252,17 +252,17 @@ def main(args):
             #adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
 
             #random offset from start position
-            ego = env.actors["ego_vehicle"]
-            ego_loc = ego.get_location()
+            adv = env.actors["adversary"]
+            adv_loc = adv.get_location()
             random_offset = random.uniform(0, 10)
             parameters = [random_offset]
             #ego_loc.y = ego_loc.y - random_offset
-            new_transform = carla.Transform(location=ego_loc, rotation=ego.get_transform().rotation)
-            ego.set_transform(new_transform)
+            """new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
+            adv.set_transform(new_transform)"""
             
-            adv_traj = create_random_traj((ego_loc.x, -ego_loc.y), env._network)
-            print(adv_traj)
-            time.sleep(100)
+            adv_traj = create_random_traj((adv_loc.x, -adv_loc.y), env._network)
+            for p in adv_traj:
+                print(p)
 
             """env = mats_gym.openscenario_env(
                 scenario_files="scenarios/open_scenario/test.xosc",
@@ -374,6 +374,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="cat")
+    parser.add_argument('--strategy', type=str, default="random")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)
