@@ -144,7 +144,7 @@ def joint_policy(agents, counter=None):
                 ctrl = agents[agent].run_step()
                 actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
             else:
-                actions[agent] = np.array([.60, 0, 0])
+                actions[agent] = np.array([.65, -0.06, 0])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
