@@ -286,7 +286,7 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
         list of list of (x, y): Each trajectory is a list of (x, y) tuples.
     """
     min_distance = 30
-    max_distance = 60
+    max_distance = 80
     car_point = Point(start_position)
 
     all_trajectories = []
@@ -338,13 +338,14 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
         # Decide starting point list
         if not path_so_far:
             # We're at the start — use sliced forward points
+            new_path = [start_position]
+            last_point = start_position
             points_to_add = forward_points
         else:
-            # Otherwise, add full centerline skipping first point
-            points_to_add = centerline[1:]
+            new_path = path_so_far[:]
+            last_point = new_path[-1]
+            points_to_add = [(pt[0], pt[1]) for pt in current_lane.centerline.points][1:]
 
-        new_path = path_so_far[:]
-        last_point = new_path[-1]
         current_dist = distance_so_far
 
         for pt in points_to_add:
@@ -365,7 +366,7 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
                 dfs(next_lane, new_path, current_dist, depth + 1)
 
     # Step 4: Begin traversal from the start position and trimmed centerline
-    dfs(closest_lane, [start_position], 0.0, 0)
+    dfs(closest_lane, [], 0.0, 0)
 
     return remove_overlapping_subtrajectories(all_trajectories)
 
@@ -402,7 +403,8 @@ def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
 
 def create_random_traj(ego_loc, network):
     trajs = generate_trajectories_from_position(ego_loc, 0, network)
-    traj1 = resample_trajectory_to_equal_distance(trajs[0])
+    idx = random.uniform(0, len(trajs) - 1) 
+    traj1 = resample_trajectory_to_equal_distance(trajs[idx])
 
     random_max_speed = random.uniform(3, 10)
     random_acc = random.uniform(3, 8)
@@ -411,6 +413,7 @@ def create_random_traj(ego_loc, network):
         speed = min(random_max_speed, (i + 1) ** random_acc)
         point = traj1[i]
         trajectory.append([point[0], -point[1], speed])
+    return trajectory
 
 def generate_timestamps(total_distance, num_points, acc, vmax):
     # Phase 1: Acceleration phase
