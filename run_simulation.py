@@ -17,7 +17,7 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from mats_trafficgen.cat_wrapper import AdversarialTrainingWrapper
 from cat.advgen.adv_generator import AdvGenerator
 from mats_trafficgen.level_generator import LevelGenerator
-from mats_trafficgen.trajectory_following import TrajectoryFollowingAgent
+from mats_trafficgen.trajectory_following import TrajectoryFollowingAgent, TrajectoryFollowingAgentNew
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 import rclpy
 from std_msgs.msg import String
@@ -142,7 +142,9 @@ def joint_policy(agents, counter=None):
                     return actions
             if agent != "ego_vehicle":
                 ctrl = agents[agent].run_step()
-                actions[agent] = np.array([.3, 0, 0])
+                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+            else:
+                actions[agent] = np.array([.6, -.06, 0])
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
@@ -242,7 +244,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             end = time.time()
             print(end - start)
         counter += 1
-        actions = joint_policy(agents, counter)
+        actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
         time.sleep(.05)
         if env.coll:
@@ -412,7 +414,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
         agents["ego_vehicle"] = {"ego_vehicle"}
     if adv_path is not None:
         traj = [(carla.Location(x=point[0], y=point[1]), point[2] * 3.6) for point in adv_path]
-        adv_agent = TrajectoryFollowingAgent(
+        adv_agent = TrajectoryFollowingAgentNew(
             vehicle=env.actors["adversary"],
             trajectory=traj
         )
@@ -426,7 +428,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
     counter = 0
     while not done:
         counter += 1
-        actions = joint_policy(agents, counter)
+        actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
         time.sleep(.02)
         if env.coll:

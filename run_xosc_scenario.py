@@ -346,7 +346,7 @@ def main(args):
         world.tick()l
         time.sleep(100)"""
 
-        run_simulation(autoware_container_name=autoware_container_name,
+        run_dummy_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
                        carla_container_name=carla_container_name,
                        default_terminal=default_terminal,
