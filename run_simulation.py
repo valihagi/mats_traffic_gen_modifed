@@ -42,7 +42,7 @@ from enum import IntEnum
 
 class WaitingTime(IntEnum):
     STARTTRIGGERSPEED = 2
-    WAITFORAUTONOMOUS = 40
+    WAITFORAUTONOMOUS = 80
     MAXSTARTDELAY = 250
     MAXTIMESTEPS = 320
 
@@ -115,8 +115,9 @@ def run_autoware_simulation(container_name, autoware_terminal):
         "source install/setup.bash && "
         "ros2 launch autoware_launch e2e_simulator.launch.xml "
         "vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit "
-        "map_path:=/home/u29r26/developing/Town10 launch_system:=false"
+        "map_path:=/home/u29r26/developing/Town10"
     )
+    # launch_system:=false
     return run_docker_command(container_name, command, autoware_terminal)
     
     
@@ -208,9 +209,9 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
         #TODO implement wait for ego to have specific speed
         pos = env.actors["ego_vehicle"].get_location()
-        if pos.y < 45:
+        if pos.y < 43:
             break
-        time.sleep(.01)
+        time.sleep(.03)
         CarlaDataProvider.get_world().tick()
     print("-------Starting now:-------------")
     
@@ -235,7 +236,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
-        time.sleep(.03)
+        time.sleep(.05)
         if env.coll:
             collision = True
             break
@@ -342,9 +343,9 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
             #TODO implement wait for ego to have specific speed
             pos = env.actors["ego_vehicle"].get_location()
-            if pos.y < 45:
+            if pos.y < 43:
                 break
-            time.sleep(.01)
+            time.sleep(.03)
             CarlaDataProvider.get_world().tick()
         print("-------Starting now:-------------")
 
@@ -364,7 +365,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
                 done = True
             else:
                 done = False
-            time.sleep(.01)
+            time.sleep(.05)
             if counter > WaitingTime.MAXTIMESTEPS:
                 done = True
             else:
@@ -425,7 +426,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
             break
         #done = all(done.values())
         env.render()
-        if counter > 100:
+        if counter > 300:
             done = True
         else:
             done = False

@@ -1045,17 +1045,17 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             'state/past/x': np.full([128, 10], -1, dtype=np.float32),
             'state/past/y': np.full([128, 10], -1, dtype=np.float32),
             'state/past/z': np.full([128, 10], -1, dtype=np.float32),
-            'state/future/bbox_yaw': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/height': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/length': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/valid': np.full([128, 80], 0, dtype=np.int64),
-            'state/future/vel_yaw': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/velocity_x': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/velocity_y': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/width': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/x': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/y': np.full([128, 80], -1, dtype=np.float32),
-            'state/future/z': np.full([128, 80], -1, dtype=np.float32)
+            'state/future/bbox_yaw': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/height': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/length': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/valid': np.full([128, 160], 0, dtype=np.int64),
+            'state/future/vel_yaw': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/velocity_x': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/velocity_y': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/width': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/x': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/y': np.full([128, 160], -1, dtype=np.float32),
+            'state/future/z': np.full([128, 160], -1, dtype=np.float32)
         }
 
         for i, actor_id in enumerate(self.agents):
@@ -1065,7 +1065,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             state_features["state/is_sdc"][i] = 1 if actor_id == self._ego_agent else 0
             state_features["state/tracks_to_predict"][i] = i < len(self._trajectories)
 
-            for t in range(min(len(self._trajectories[actor_id]), 80)):
+            for t in range(min(len(self._trajectories[actor_id]), 160)):
                 offset = 0
                 if t < 10:
                     time = "past"

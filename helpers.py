@@ -401,7 +401,7 @@ def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
     return np.stack((resampled_x, resampled_y), axis=1)
 
 def create_random_traj(ego_loc, network):
-    trajs = generate_trajectories_from_position((ego_loc.x, -ego_loc.y), 0, network)
+    trajs = generate_trajectories_from_position(ego_loc, 0, network)
     traj1 = resample_trajectory_to_equal_distance(trajs[0])
 
     random_max_speed = random.uniform(3, 10)

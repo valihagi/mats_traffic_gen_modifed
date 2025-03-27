@@ -130,7 +130,7 @@ def main(args):
     angle_deg = math.degrees(angle_rad)
     
     target_point = carla.Transform(
-        carla.Location(71, -13.5, 0.0),  # Assuming Z = 0 for ground level
+        carla.Location(55, -13.5, 0.0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
     )
     autoware_target_point = None #"""{
@@ -250,14 +250,20 @@ def main(args):
             already_reset = False
             #times = generate_timestamps(100, 80, .6, 3.5)
             #adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
+
+            #random offset from start position
             ego = env.actors["ego_vehicle"]
             ego_loc = ego.get_location()
-            adv_traj = create_random_traj((ego_loc.x, -ego_loc.y), env._network)
-            #random offset from start position
-            random_offset = random.uniform(-10, 10)
-            ego_loc.y = ego_loc.y - random_offset
+            random_offset = random.uniform(0, 10)
+            parameters = [random_offset]
+            #ego_loc.y = ego_loc.y - random_offset
             new_transform = carla.Transform(location=ego_loc, rotation=ego.get_transform().rotation)
             ego.set_transform(new_transform)
+            
+            adv_traj = create_random_traj((ego_loc.x, -ego_loc.y), env._network)
+            print(adv_traj)
+            time.sleep(100)
+
             """env = mats_gym.openscenario_env(
                 scenario_files="scenarios/open_scenario/test.xosc",
                 host=args.carla_host,
@@ -280,11 +286,11 @@ def main(args):
             })"""
             #check ego traj
             #env.check_on_roadgraph_old(ego_traj, iteration_counter)
-            if not env.check_on_roadgraph(ego_traj, iteration_counter):
+            """if not env.check_on_roadgraph(adv_traj, iteration_counter):
                 print("Created trajectory is not on the roadgraph and will therefore be skipped!")
                 already_reset = True
                 save_log_file(env, info, parameters, iteration_counter, in_odd=False)
-                continue
+                continue"""
             ran_counter += 1
             """visualize_traj(
                 ego_traj[4:-4, 0],
@@ -337,7 +343,7 @@ def main(args):
 
         settings = world.get_settings()
         world.apply_settings(settings)
-        world.tick()
+        world.tick()l
         time.sleep(100)"""
 
         run_simulation(autoware_container_name=autoware_container_name,
