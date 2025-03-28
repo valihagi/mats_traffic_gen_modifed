@@ -94,7 +94,7 @@ def main(args):
     strategy = args.strategy
 
     env = mats_gym.openscenario_env(
-        scenario_files="scenarios/open_scenario/test.xosc",
+        scenario_files="scenarios/open_scenario/test_town02.xosc",
         host=args.carla_host,
         port=args.carla_port,
         seed=SEED,
@@ -131,6 +131,11 @@ def main(args):
     
     target_point = carla.Transform(
         carla.Location(55, -13.5, 0.0),  # Assuming Z = 0 for ground level
+        carla.Rotation(yaw=angle_deg)
+    )
+    #town02 ->
+    target_point = carla.Transform(
+        carla.Location(28, 191.5, 0.0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
     )
     autoware_target_point = None #"""{
@@ -314,6 +319,9 @@ def main(args):
             print("USING CAT iteratively")
             obs, info = env.reset(options={
             })
+            adv_traj = None
+            parameters = None
+            ran_counter += 1
 
         else:
             print("unknown startegy please check the config.")
@@ -346,7 +354,7 @@ def main(args):
         world.tick()l
         time.sleep(100)"""
 
-        run_simulation(autoware_container_name=autoware_container_name,
+        run_dummy_simulation(autoware_container_name=autoware_container_name,
                        bridge_container_name=bridge_container_name,
                        carla_container_name=carla_container_name,
                        default_terminal=default_terminal,

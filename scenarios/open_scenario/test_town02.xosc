@@ -8,7 +8,7 @@
       </TrajectoryCatalog>
    </CatalogLocations>
   <RoadNetwork>
-    <LogicFile filepath="Town10HD"/>
+    <LogicFile filepath="Town02"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
@@ -67,7 +67,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="106" y="46" z="0" h="-1.5707964"/>
+                <WorldPosition x="-7.5" y="170" z="0" h="-1.5707964"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -95,7 +95,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="99.5" y="-5" z="0.2" h="1.5707964"/>
+                <WorldPosition x="-3" y="212" z="0.2" h="1.5707964"/>
               </Position>
             </TeleportAction>
           </PrivateAction>

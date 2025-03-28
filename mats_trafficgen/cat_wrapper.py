@@ -900,7 +900,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 invalid_points.append((x1, y1))
                 invalid_reasons.append("Drivable Area")
                 if not debug:
-                    break
+                    return False  
                 continue 
 
             corners = compute_bounding_box_corners(x1, y1, .8, 2.2, yaw)
@@ -938,7 +938,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     invalid_points.append((x, y))
                     invalid_reasons.append("Yaw Misalignment from one of the corner points of bounding box")
                     if not debug:
-                        break
+                        return False  
                     continue  # Move to next point
 
 
@@ -2100,15 +2100,20 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 full_adv_traj,
                 np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
             ], axis=1)
-            # CHeck if on roadgraph here:
-            """visualize_traj(
-                full_adv_traj[4:-4, 0],
-                full_adv_traj[4:-4, 1],
-                full_adv_traj[4:-4, 2],
-                1.4,
-                2.9,
-                (5, 5, 5)
-            )"""
+            if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
+                P4 = 0 #can be used to only allow trajs that are on the roadgraph
+            
+                """visualize_traj(
+                    full_adv_traj[4:-4, 0],
+                    full_adv_traj[4:-4, 1],
+                    full_adv_traj[4:-4, 2],
+                    1.4,
+                    2.9,
+                    (5, 5, 5)
+                )"""
+                res[j] += 0
+                min_dist[j] = 10000000
+                continue
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
             length_OV = adv_length

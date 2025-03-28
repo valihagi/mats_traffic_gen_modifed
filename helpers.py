@@ -931,20 +931,21 @@ def compute_bounding_box_corners(x, y, half_width, half_length, heading_deg):
 
 def save_log_file(env, info, parameters, iteration, in_odd=True):
     # calc final metrics here:
-    filename = f'/workspace/random_results/succesfull_runs/data{iteration}.json'
+    approach = "iterative_cat"
+    filename = f'/workspace/{approach}_results/succesfull_runs/data{iteration}.json'
     if in_odd:
         ego_traj = env._trajectories["ego_vehicle"]
         adv_traj = env._trajectories["adversary"]
         valid = "valid"
         if all(abs(d["velocity_x"]) < .8 and abs(d["velocity_y"]) < .8 for d in ego_traj):
             valid = "invalid"
-            filename = f'/workspace/random_results/aw_didnt_start/data{iteration}.json'
+            filename = f'/workspace/{approach}_results/aw_didnt_start/data{iteration}.json'
     else:
         ego_traj = []
         adv_traj = []
         valid = "invalid by odd"
-        filename = f'/workspace/random_results/not_in_odd/data{iteration}.json'
-    info["kpis"]["lane_adherence"] = env.score_lane_adherence([[d["x"], d["y"], d["bbox_yaw"]] for d in adv_traj])
+        filename = f'/workspace/{approach}_results/not_in_odd/data{iteration}.json'
+    #info["kpis"]["lane_adherence"] = env.score_lane_adherence([[d["x"], d["y"], d["bbox_yaw"]] for d in adv_traj])
     data = {
         "ego_traj": ego_traj,
         "adv_traj": adv_traj,

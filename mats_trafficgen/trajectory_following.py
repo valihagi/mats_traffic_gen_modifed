@@ -24,7 +24,7 @@ class TrajectoryFollowingAgent(BasicAgent):
         self._controller = VehiclePIDController(
             vehicle=self._vehicle,
             args_lateral={'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt},
-            args_longitudinal={'K_P': 1.0, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt}
+            args_longitudinal={'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
         )
         self._max_throt = 0.75
         self._max_brake = 0.3

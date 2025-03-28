@@ -16,6 +16,7 @@ from scenic.core.scenarios import Scenario
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from mats_trafficgen.cat_wrapper import AdversarialTrainingWrapper
 from cat.advgen.adv_generator import AdvGenerator
+from mats_trafficgen.going_straight import GoingStraightAgent
 from mats_trafficgen.level_generator import LevelGenerator
 from mats_trafficgen.trajectory_following import TrajectoryFollowingAgent
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
@@ -143,8 +144,8 @@ def joint_policy(agents, counter=None):
             if agent != "ego_vehicle":
                 ctrl = agents[agent].run_step()
                 actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
-            else:
-                actions[agent] = np.array([.65, -.06, 0])
+            """else:
+                actions[agent] = np.array([.65, -.06, 0])"""
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
@@ -169,6 +170,10 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             trajectory=traj
         )
         agents["adversary"] = adv_agent
+    elif strategy == "cat_iterative":
+        adv_agent = GoingStraightAgent()
+        agents["adversary"] = adv_agent
+        print("newAGent")
 
     #client = carla.Client(args.carla_host, args.carla_port)
     
@@ -219,7 +224,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
         #TODO implement wait for ego to have specific speed
         pos = env.actors["ego_vehicle"].get_location()
-        if pos.y < 43:
+        if pos.y < 41:
             break
         time.sleep(.03)
         CarlaDataProvider.get_world().tick()
@@ -229,7 +234,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     counter = 0
     collision = False
     while not done:
-        if counter % 40 == 0 and counter < 110 and strategy == "cat_iterative":
+        if (counter == 50 or counter == 130) and strategy == "cat_iterative":
             start = time.time()
             _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
             traj = [
@@ -353,7 +358,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
             #TODO implement wait for ego to have specific speed
             pos = env.actors["ego_vehicle"].get_location()
-            if pos.y < 43:
+            if pos.y < 41:
                 break
             time.sleep(.03)
             CarlaDataProvider.get_world().tick()
@@ -419,6 +424,10 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
             trajectory=traj
         )
         agents["adversary"] = adv_agent
+    elif strategy == "cat_iterative":
+        adv_agent = GoingStraightAgent()
+        agents["adversary"] = adv_agent
+        print("newAGent")
 
     client = carla.Client(args.carla_host, args.carla_port)
     
@@ -427,16 +436,30 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
     #----------------main loop--------------------------------------------
     counter = 0
     while not done:
+        if counter % 40 == 0 and counter < 110 and counter > 0 and strategy == "cat_iterative":
+            start = time.time()
+            _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
+            traj = [
+                (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
+                for point in adv_traj
+            ]
+            adv_agent = TrajectoryFollowingAgent(
+                vehicle=env.actors["adversary"],
+                trajectory=traj
+            )
+            agents["adversary"] = adv_agent
+            end = time.time()
+            print(end - start)
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
-        time.sleep(.02)
+        time.sleep(.05)
         if env.coll:
             collision = True
             break
         #done = all(done.values())
         env.render()
-        if counter > 300:
+        if counter > WaitingTime.MAXTIMESTEPS:
             done = True
         else:
             done = False
