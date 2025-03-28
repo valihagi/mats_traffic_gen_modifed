@@ -45,7 +45,10 @@ class WaitingTime(IntEnum):
     STARTTRIGGERSPEED = 2
     WAITFORAUTONOMOUS = 80
     MAXSTARTDELAY = 250
-    MAXTIMESTEPS = 320
+    MAXTIMESTEPS = 280
+    COORDINATECHECK = 46.5
+
+progress_file = "/workspace/shared/progress.txt"
 
 
 class FakeWaypoint:
@@ -116,7 +119,7 @@ def run_autoware_simulation(container_name, autoware_terminal):
         "source install/setup.bash && "
         "ros2 launch autoware_launch e2e_simulator.launch.xml "
         "vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit "
-        "map_path:=/home/u29r26/developing/Town10"
+        "map_path:=/home/u29r26/developing/Town10 launch_system:=false"
     )
     # launch_system:=false
     return run_docker_command(container_name, command, autoware_terminal)
@@ -154,6 +157,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     obs, info = env.reset(options={
                 "scene": scene
             })
+    print("sleeping now")
     print("test")
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
     #run_docker_restart_command(autoware_container_name, default_terminal)
@@ -170,7 +174,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             trajectory=traj
         )
         agents["adversary"] = adv_agent
-    elif strategy == "cat_iterative":
+    elif strategy == "cat_iterative" or strategy == "cat":
         adv_agent = GoingStraightAgent()
         agents["adversary"] = adv_agent
         print("newAGent")
@@ -224,7 +228,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
         #TODO implement wait for ego to have specific speed
         pos = env.actors["ego_vehicle"].get_location()
-        if pos.y < 41:
+        if pos.y > WaitingTime.COORDINATECHECK:
             break
         time.sleep(.03)
         CarlaDataProvider.get_world().tick()
@@ -234,7 +238,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     counter = 0
     collision = False
     while not done:
-        if (counter == 50 or counter == 130) and strategy == "cat_iterative":
+        if (counter == 30 or counter == 89 or counter == 130) and strategy == "cat_iterative":
             start = time.time()
             _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
             traj = [
@@ -287,7 +291,13 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     print(strategy)
     if strategy != "cat":
         # calc metrics and return them / also save trajectories that where executed
-        save_log_file(env, info, parameters, iteration)
+        save_log_file(env, info, parameters, strategy)
+
+        if iteration % 5 == 0 and iteration > 0:
+            with open(progress_file, "w") as f:
+                f.write(str(1))
+            print(f"[Main] Progress written: {1}")
+            time.sleep(120)
         return
     print(num_iterations)
     for iteration in range(num_iterations):
@@ -324,7 +334,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(550)):
+        for i in tqdm(range(350)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -358,7 +368,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
             #TODO implement wait for ego to have specific speed
             pos = env.actors["ego_vehicle"].get_location()
-            if pos.y < 41:
+            if pos.y > WaitingTime.COORDINATECHECK:
                 break
             time.sleep(.03)
             CarlaDataProvider.get_world().tick()
@@ -381,10 +391,6 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             else:
                 done = False
             time.sleep(.05)
-            if counter > WaitingTime.MAXTIMESTEPS:
-                done = True
-            else:
-                done = False
         #---------------------------------------------------------------------------
 
         #other_yaw = info["kpis"]["adv_yaw"]
@@ -406,7 +412,12 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         run_docker_restart_command(autoware_container_name, default_terminal)
         run_docker_restart_command(bridge_container_name, default_terminal)
 
-        save_log_file(env, info, parameters, iteration)
+        save_log_file(env, info, parameters, strategy)
+        if iteration % 5 == 0 and iteration > 0:
+            with open(progress_file, "w") as f:
+                f.write(str(1))
+            print(f"[Main] Progress written: {1}")
+            time.sleep(120)
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
@@ -464,7 +475,11 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
         else:
             done = False
     #--------------------------------------------------------------------------
-
+    if False:
+        with open(progress_file, "w") as f:
+            f.write(str(1))
+        print(f"[Main] Progress written: {1}")
+        time.sleep(120)
 
 
     #--------------------return if we are not within a CAT run-----------------------

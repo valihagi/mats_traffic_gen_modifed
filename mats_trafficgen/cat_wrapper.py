@@ -270,8 +270,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                      "near_miss_ttc": [],
                      "euclidean_distance": []}
     
-    def get_ttc_as_dict(self):
-        return {"ttc": self.kpis["ttc"]}
+    def get_min_ttc_as_dict(self):
+        return {"min_ttc": min(self.kpis["ttc"])}
 
     def _update_actor_ids(self):
         for tl in CarlaDataProvider.get_world().get_actors().filter("traffic.traffic_light"):
@@ -633,7 +633,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
         ], axis=1)
         trajectory = [(x, -y, -z) for x, y, z in full_adv_traj]
-        plot_trajectory_vs_network(trajectory, self._network, None, 0, None, "final_chosen_traj")
+        #plot_trajectory_vs_network(trajectory, self._network, None, 0, None, "final_chosen_traj")
         adv_traj_original = np.concatenate([
             adv_traj_original,
             np.rad2deg(get_polyline_yaw(adv_traj_original)).reshape(-1, 1)
@@ -878,7 +878,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 print(f"Speed limit exceeded")
                 if True:    
                     print(f"Trajectory INVALID:  violations found.")
-                    plot_trajectory_vs_network(trajectory, network, None, idx, None, "speed_limit/invalid_trajectory_debug")
+                    #plot_trajectory_vs_network(trajectory, network, None, idx, None, "speed_limit/invalid_trajectory_debug")
                 return False
         
         """if not self.is_trajectory_within_speed_limit(trajectory, 17):
@@ -945,12 +945,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         if invalid_points:
             if True:    
                 print(f"Trajectory INVALID: {len(invalid_points)} violations found.")
-                plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid/invalid_trajectory_debug")
+                #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "invalid/invalid_trajectory_debug")
             return False  
         else:
             if True:   
                 print("Trajectory is VALID!")
-                plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid/valid_trajectory_debug")
+                #plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, "valid/valid_trajectory_debug")
             return True 
         
     def score_lane_adherence(self, trajectory_original, weight=1):
@@ -2103,14 +2103,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
-                """visualize_traj(
+                visualize_traj(
                     full_adv_traj[4:-4, 0],
                     full_adv_traj[4:-4, 1],
                     full_adv_traj[4:-4, 2],
                     1.4,
                     2.9,
                     (5, 5, 5)
-                )"""
+                )
                 res[j] += 0
                 min_dist[j] = 10000000
                 continue
