@@ -172,6 +172,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                      "near_miss_ttc": [],
                      "euclidean_distance": []}
         self.parameters = {}
+        self.ego_trajs_history = []
 
     def reset(
             self, seed: int | None = None, options: dict | None = None
@@ -452,6 +453,15 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
     def _generate_adversarial_route(self):
         features, ego_route = self._get_features()
 
+        trajs_AV = np.concatenate([
+            features["state/future/x"][self.agents.index(self._ego_agent)].reshape(-1, 1),
+            features["state/future/y"][self.agents.index(self._ego_agent)].reshape(-1, 1)
+        ], axis=1)
+        
+        trajs_AV = np.expand_dims(trajs_AV, axis=0)
+
+        self.ego_trajs_history.append(trajs_AV)
+
         pred_trajectory, pred_score = self._sample_trajectories(features)
         #remove trajs that are not on roadgraph
         scores = self._score_trajectories(pred_trajectory, pred_score, features)
@@ -475,11 +485,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         adversary = self.actors[adversary]
         adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
         width, length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
-        trajs_AV = np.concatenate([
+        """trajs_AV = np.concatenate([
             features["state/future/x"][self.agents.index(self._ego_agent)].reshape(-1, 1),
             features["state/future/y"][self.agents.index(self._ego_agent)].reshape(-1, 1)
         ], axis=1)
-        trajs_AV = np.expand_dims(trajs_AV, axis=0)
+        
+        trajs_AV = np.expand_dims(trajs_AV, axis=0)"""
+
+        trajs_AV = self.ego_trajs_history
         for j, prob_OV in enumerate(probs_OV):
             P4 = 1
             P1 = prob_OV
@@ -533,7 +546,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                                       1) - 0.5 * length_OV * sin_theta - 0.5 * width_OV * cos_theta
             ], axis=1)
 
-            probs_AV = [1.]
+            probs_AV = np.ones(len(trajs_AV))
             for i, prob_AV in enumerate(probs_AV):
                 P2 = prob_AV
                 traj_AV = trajs_AV[i][::5]
@@ -542,6 +555,20 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 length_AV = length
                 cos_theta = np.cos(yaw_AV)
                 sin_theta = np.sin(yaw_AV)
+                traj_AV_plot = trajs_AV[j]
+                full_ego_traj = get_full_trajectory(self.agents.index(self._ego_agent), features, future=traj_AV_plot)[:,::-1]
+                full_ego_traj = np.concatenate([
+                    full_ego_traj,
+                    np.rad2deg(get_polyline_yaw(full_ego_traj)).reshape(-1, 1)
+                ], axis=1)
+                visualize_traj(
+                    full_ego_traj[4:-4, 0],
+                    full_ego_traj[4:-4, 1],
+                    full_ego_traj[4:-4, 2],
+                    1.4,
+                    2.9,
+                    (5, 0, 5)
+                )
 
                 bbox_AV = np.concatenate((traj_AV, yaw_AV, \
                                           traj_AV[:, 0].reshape(-1,
@@ -723,6 +750,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         roadgraph_features = self._get_roadgraph_features(self._max_samples)
         self.filter_road_graph_for_odd_checking(roadgraph_features)
         state_features, ego_route = self._get_state_features("ego_vehicle")
+
+
+       
+
         dynamic_map_features = self._get_dynamic_map_features()
 
         ids = roadgraph_features["roadgraph_samples/id"]
