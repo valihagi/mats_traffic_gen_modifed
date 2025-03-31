@@ -902,13 +902,11 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 if not debug:
                     return False  
                 continue 
-
-            corners = compute_bounding_box_corners(x1, y1, .8, 2.2, yaw)
-            for x, y in corners:
-                point = shapely.geometry.Point(x, y)
-
+            
+            if True:
                 candiate_lanes = []
                 yaw_differences = []
+                point = shapely.geometry.Point(x1, y1)
 
                 # 2. Check which lanes contain this point
                 for lane in network.lanes:
@@ -934,12 +932,50 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     yaw_differences.append(yaw_diff)
 
                 if all(diff > 80 for diff in yaw_differences):
-                    print(f"Yaw misalignment at ({x}, {y})")
-                    invalid_points.append((x, y))
-                    invalid_reasons.append("Yaw Misalignment from one of the corner points of bounding box")
+                    print(f"Yaw misalignment at ({x1}, {y1})")
+                    invalid_points.append((x1, y1))
+                    invalid_reasons.append("Yaw Misalignment from one of the traj points.")
                     if not debug:
                         return False  
                     continue  # Move to next point
+            else:
+                corners = compute_bounding_box_corners(x1, y1, .8, 2.2, yaw)
+                for x, y in corners:
+                    point = shapely.geometry.Point(x, y)
+
+                    candiate_lanes = []
+                    yaw_differences = []
+
+                    # 2. Check which lanes contain this point
+                    for lane in network.lanes:
+                        if lane.containsPoint(point):
+                            candiate_lanes.append(lane)
+
+                    if len(candiate_lanes) < 1:
+                        continue
+
+                    for lane in candiate_lanes:
+                        # Get nearest point on lane centerline
+                        nearest_pt = lane.centerline.lineString.interpolate(
+                            lane.centerline.lineString.project(point)
+                        )
+
+                        # Compute expected lane direction
+                        lane_yaw_rad = lane.orientation.value(Vector(nearest_pt.x, nearest_pt.y)) + 1.57
+
+                        lane_yaw = np.degrees(lane_yaw_rad) 
+
+                        # Compute yaw difference and store
+                        yaw_diff = abs(self.wrap_to_180(yaw - lane_yaw))
+                        yaw_differences.append(yaw_diff)
+
+                    if all(diff > 80 for diff in yaw_differences):
+                        print(f"Yaw misalignment at ({x}, {y})")
+                        invalid_points.append((x, y))
+                        invalid_reasons.append("Yaw Misalignment from one of the corner points of bounding box")
+                        if not debug:
+                            return False  
+                        continue  # Move to next point
 
 
         if invalid_points:
@@ -2074,7 +2110,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
     def _select_colliding_trajectory_iterative(self, features, pred_score, pred_trajectory):
         trajs_OV = pred_trajectory[self.agents.index(self._adv_agent)]
         probs_OV = pred_score[self.agents.index(self._adv_agent)]
-        probs_OV[6:] = probs_OV[6]
+        probs_OV[:] = probs_OV[0]
         probs_OV = np.exp(probs_OV)
         probs_OV = probs_OV / np.sum(probs_OV)
         res = np.zeros(pred_trajectory.shape[1])
@@ -2085,9 +2121,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
         width, length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
         
-        trajs_AV = pred_trajectory[self.agents.index(self._ego_agent)]
-        probs_AV = pred_score[self.agents.index(self._ego_agent)]
-        probs_AV[16:] = probs_AV[16]
+        trajs_AV = pred_trajectory[self.agents.index(self._ego_agent)][:16]
+        probs_AV = pred_score[self.agents.index(self._ego_agent)][:16]
+        probs_AV[:] = probs_AV[0]
         probs_AV = np.exp(probs_AV)
         probs_AV = probs_AV / np.sum(probs_AV)
 
@@ -2103,17 +2139,25 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
-                visualize_traj(
+                """visualize_traj(
                     full_adv_traj[4:-4, 0],
                     full_adv_traj[4:-4, 1],
                     full_adv_traj[4:-4, 2],
                     1.4,
                     2.9,
                     (5, 5, 5)
-                )
+                )"""
                 res[j] += 0
                 min_dist[j] = 10000000
                 continue
+            """visualize_traj(
+                    full_adv_traj[4:-4, 0],
+                    full_adv_traj[4:-4, 1],
+                    full_adv_traj[4:-4, 2],
+                    1.4,
+                    2.9,
+                    (5, 5, 5)
+                )"""
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
             length_OV = adv_length
@@ -2149,7 +2193,6 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     full_ego_traj,
                     np.rad2deg(get_polyline_yaw(full_ego_traj)).reshape(-1, 1)
                 ], axis=1)
-                # CHeck if on roadgraph here:
                 """visualize_traj(
                     full_ego_traj[4:-4, 0],
                     full_ego_traj[4:-4, 1],

@@ -46,7 +46,7 @@ class WaitingTime(IntEnum):
     WAITFORAUTONOMOUS = 80
     MAXSTARTDELAY = 250
     MAXTIMESTEPS = 280
-    COORDINATECHECK = 46.5
+    COORDINATECHECK = 45.8
 
 progress_file = "/workspace/shared/progress.txt"
 
@@ -148,7 +148,7 @@ def joint_policy(agents, counter=None):
                 ctrl = agents[agent].run_step()
                 actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
             """else:
-                actions[agent] = np.array([.65, -.06, 0])"""
+                actions[agent] = np.array([.65, -.01, 0])"""
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
@@ -193,7 +193,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(600)):
+    for i in tqdm(range(500)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())

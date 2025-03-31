@@ -1,0 +1,79 @@
+{
+  "Settings": {
+    "Algorithm": {
+      "StopCriteriaMinIterations": 0,
+      "StopCriteriaMaxIterations": 500,
+      "StopCriteriaWindow": 5,
+      "QualityThreshold": 0.5,
+      "OptimizePCT": 0.2,
+      "ListBuffer": 1,
+      "RefreshInterval": 1.0,
+      "OutputWeightIncreaseFactor": 0.0,
+      "NeighboringRadius": 0.1,
+      "FastSpaceFilling": false,
+      "RepetitionPoints": {
+        "Points": [],
+        "Repetitions": 0
+      }
+    },
+    "Modeling": {
+      "StopCriteriaMinQuality": 0.8,
+      "StopCriteriaTolerance": 0.1,
+      "ModelType": "activedoe",
+      "Smoothing": 0.1,
+      "SignificanceThreshold": 0.05
+    },
+    "Coverage": {
+      "StopCriteriaTolerance": 0.1,
+      "MaxDesignSpaceVariations": 6,
+      "Smoothing": 0.1
+    },
+    "Criticality": {
+      "StopCriteriaTolerance": 0.1,
+      "Samples": 100000
+    }
+  },
+  "Variations": [
+    {
+      "HardMin": -10.0,
+      "Min": -5.0,
+      "Max": 5.0,
+      "HardMax": 10.0,
+      "Level": null,
+      "Name": "start_pos_offset"
+    },
+    {
+      "HardMin": 0,
+      "Min": 0,
+      "Max": 1,
+      "HardMax": 1,
+      "Level": [0,1],
+      "Name": "turn_idx"
+    },
+    {
+      "HardMin": 0,
+      "Min": 2.5,
+      "Max": 15,
+      "HardMax": 20,
+      "Level": null,
+      "Name": "max_speed"
+    },
+    {
+      "HardMin": 0,
+      "Min": 0.4,
+      "Max": 1.5,
+      "HardMax": 2,
+      "Level": null,
+      "Name": "acceleration"
+    }
+  ],
+  "Responses": [
+    {
+      "Name": "min_ttc",
+      "Max": 0.4,
+      "Min": 0.0,
+      "Optimization": 1,
+      "ModelType": null
+    }
+  ]
+}
