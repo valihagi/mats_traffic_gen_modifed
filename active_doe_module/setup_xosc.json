@@ -53,16 +53,16 @@
     {
       "HardMin": 0,
       "Min": 2.5,
-      "Max": 15,
-      "HardMax": 20,
+      "Max": 20,
+      "HardMax": 30,
       "Level": null,
       "Name": "max_speed"
     },
     {
       "HardMin": 0,
       "Min": 0.4,
-      "Max": 1.5,
-      "HardMax": 2,
+      "Max": 2,
+      "HardMax": 2.5,
       "Level": null,
       "Name": "acceleration"
     }
@@ -70,7 +70,7 @@
   "Responses": [
     {
       "Name": "min_ttc",
-      "Max": 0.4,
+      "Max": 1.0,
       "Min": 0.0,
       "Optimization": 1,
       "ModelType": null

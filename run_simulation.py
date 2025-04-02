@@ -47,6 +47,7 @@ class WaitingTime(IntEnum):
     MAXSTARTDELAY = 250
     MAXTIMESTEPS = 280
     COORDINATECHECK = 45.8
+    COORDINATECHECK2 = 23.8
 
 progress_file = "/workspace/shared/progress.txt"
 
@@ -148,11 +149,12 @@ def joint_policy(agents, counter=None):
                 ctrl = agents[agent].run_step()
                 actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
             """else:
-                actions[agent] = np.array([.65, -.01, 0])"""
+                actions[agent] = np.array([.72, -.09, 0])"""
         return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
-                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None):
+                   bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None,
+                   test_xosc=None):
     #run_docker_restart_command(carla_container_name, default_terminal)
     obs, info = env.reset(options={
                 "scene": scene
@@ -174,7 +176,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             trajectory=traj
         )
         agents["adversary"] = adv_agent
-    elif strategy == "cat_iterative" or strategy == "cat":
+    elif strategy == "cat_iterative":# or strategy == "cat":
         adv_agent = GoingStraightAgent()
         agents["adversary"] = adv_agent
         print("newAGent")
@@ -229,6 +231,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         #TODO implement wait for ego to have specific speed
         pos = env.actors["ego_vehicle"].get_location()
         if pos.y > WaitingTime.COORDINATECHECK:
+        #if pos.x > WaitingTime.COORDINATECHECK2:
             break
         time.sleep(.03)
         CarlaDataProvider.get_world().tick()
@@ -255,7 +258,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
-        time.sleep(.05)
+        time.sleep(.08)
         if env.coll:
             collision = True
             break
@@ -291,7 +294,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     print(strategy)
     if strategy != "cat":
         # calc metrics and return them / also save trajectories that where executed
-        save_log_file(env, info, parameters, strategy)
+        save_log_file(env, info, parameters, strategy, test_xosc)
 
         if iteration % 5 == 0 and iteration > 0:
             with open(progress_file, "w") as f:
@@ -334,7 +337,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(350)):
+        for i in tqdm(range(450)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -369,6 +372,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             #TODO implement wait for ego to have specific speed
             pos = env.actors["ego_vehicle"].get_location()
             if pos.y > WaitingTime.COORDINATECHECK:
+            #if pos.x > WaitingTime.COORDINATECHECK2:
                 break
             time.sleep(.03)
             CarlaDataProvider.get_world().tick()
@@ -412,8 +416,8 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         run_docker_restart_command(autoware_container_name, default_terminal)
         run_docker_restart_command(bridge_container_name, default_terminal)
 
-        save_log_file(env, info, parameters, strategy)
-        if iteration % 5 == 0 and iteration > 0:
+        save_log_file(env, info, parameters, strategy, test_xosc)
+        if iteration % 7 == 0 and iteration > 0:
             with open(progress_file, "w") as f:
                 f.write(str(1))
             print(f"[Main] Progress written: {1}")
@@ -421,7 +425,8 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
-                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, parameters=None, num_iterations=50):
+                bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, parameters=None,
+                test_xosc=None, num_iterations=50):
         
     if scene is not None:
         agents = get_agents(env)
@@ -532,7 +537,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
             if counter > 250:
                 done = True
             env.render()
-            time.sleep(.02)
+            time.sleep(.04)
         #---------------------------------------------------------------------------
 
         #other_yaw = info["kpis"]["adv_yaw"]

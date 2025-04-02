@@ -402,17 +402,20 @@ def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
     return np.stack((resampled_x, resampled_y), axis=1)
 
 def create_random_traj(ego_loc, network, parameters=None):
+    print(f"ego_loc is {ego_loc} here.")
     trajs = generate_trajectories_from_position(ego_loc, 0, network)
     if parameters is not None:
+        print(f"we have {len(trajs)} possible trajs from this start")
         idx = parameters["turn_idx"]
         random_max_speed = parameters["max_speed"]
         random_acc = parameters["acceleration"]
     else:
+        print(f"we have {len(trajs)} possible trajs from this start")
         idx = random.randint(0, len(trajs) - 1)
         random_max_speed = random.uniform(2.5, 15)
         random_acc = random.uniform(.4, 1.5)
 
-    traj1 = resample_trajectory_to_equal_distance(trajs[idx])
+    traj1 = resample_trajectory_to_equal_distance(trajs[int(idx)])
     traj1 = traj1[:120]
     
     trajectory = []
@@ -935,21 +938,21 @@ def compute_bounding_box_corners(x, y, half_width, half_length, heading_deg):
 
     return [front_left, front_right, rear_right, rear_left]
 
-def save_log_file(env, info, parameters, approach, in_odd=True):
+def save_log_file(env, info, parameters, approach, test_xosc, in_odd=True):
     # calc final metrics here:
-    filename = f'/workspace/results/{approach}_results/succesfull_runs/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    filename = f'/workspace/results/{test_xosc}/{approach}_results/succesfull_runs/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     if in_odd:
         ego_traj = env._trajectories["ego_vehicle"]
         adv_traj = env._trajectories["adversary"]
         valid = "valid"
         if all(abs(d["velocity_x"]) < .8 and abs(d["velocity_y"]) < .8 for d in ego_traj):
             valid = "invalid"
-            filename = f'/workspace/{approach}_results/aw_didnt_start/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+            filename = f'//workspace/results/{test_xosc}/{approach}_results/aw_didnt_start/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     else:
         ego_traj = []
         adv_traj = []
         valid = "invalid by odd"
-        filename = f'/workspace/{approach}_results/not_in_odd/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+        filename = f'/workspace/results/{test_xosc}/{approach}_results/not_in_odd/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     #info["kpis"]["lane_adherence"] = env.score_lane_adherence([[d["x"], d["y"], d["bbox_yaw"]] for d in adv_traj])
     data = {
         "ego_traj": ego_traj,

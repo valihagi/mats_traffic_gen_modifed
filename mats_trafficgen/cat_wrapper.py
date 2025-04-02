@@ -109,7 +109,7 @@ def visualize_traj(x, y, yaw, width, length, color, skip=5):
         time = ts[t]
         loc += carla.Location(z=0.2)
         world.debug.draw_string(loc, f"{time:.1f}s", draw_shadow=True, color=color,
-                                life_time=1000000)
+                                life_time=10)
 
 
 def get_full_trajectory(id, features, with_yaw=False, future=None):
@@ -458,9 +458,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             features["state/future/y"][self.agents.index(self._ego_agent)].reshape(-1, 1)
         ], axis=1)
         
-        trajs_AV = np.expand_dims(trajs_AV, axis=0)
-
-        self.ego_trajs_history.append(trajs_AV)
+        #trajs_AV = np.expand_dims(trajs_AV, axis=0)
+        if len(self.ego_trajs_history) < 10:
+            self.ego_trajs_history.append(trajs_AV)
 
         pred_trajectory, pred_score = self._sample_trajectories(features)
         #remove trajs that are not on roadgraph
@@ -508,17 +508,25 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
-                """visualize_traj(
+                visualize_traj(
                     full_adv_traj[4:-4, 0],
                     full_adv_traj[4:-4, 1],
                     full_adv_traj[4:-4, 2],
                     1.4,
                     2.9,
-                    (5, 5, 5)
-                )"""
+                    (5, 0, 0)
+                )
                 res[j] += 0
-                min_dist[j] = 10000000
+                min_dist[j] = 1000000000000
                 continue
+            visualize_traj(
+                full_adv_traj[4:-4, 0],
+                full_adv_traj[4:-4, 1],
+                full_adv_traj[4:-4, 2],
+                1.4,
+                2.9,
+                (0, 5, 5)
+            )
             #------------------------
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
@@ -555,8 +563,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 length_AV = length
                 cos_theta = np.cos(yaw_AV)
                 sin_theta = np.sin(yaw_AV)
-                traj_AV_plot = trajs_AV[j]
-                full_ego_traj = get_full_trajectory(self.agents.index(self._ego_agent), features, future=traj_AV_plot)[:,::-1]
+                traj_AV_plot = trajs_AV[i]
+                full_ego_traj = get_full_trajectory(self.agents.index(self._ego_agent), features, future=traj_AV_plot)
                 full_ego_traj = np.concatenate([
                     full_ego_traj,
                     np.rad2deg(get_polyline_yaw(full_ego_traj)).reshape(-1, 1)
@@ -565,9 +573,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     full_ego_traj[4:-4, 0],
                     full_ego_traj[4:-4, 1],
                     full_ego_traj[4:-4, 2],
-                    1.4,
-                    2.9,
-                    (5, 0, 5)
+                    1,
+                    2.4,
+                    (5, 5, 5)
                 )
 
                 bbox_AV = np.concatenate((traj_AV, yaw_AV, \
@@ -676,14 +684,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             ego_length,
             (0, 5, 0)
         )
-        visualize_traj(
+        """visualize_traj(
             adv_traj_original[4:-4, 0],
             adv_traj_original[4:-4, 1],
             adv_traj_original[4:-4, 2],
             adv_width,
             adv_length,
             (0, 0, 5)
-        )
+        )"""
         visualize_traj(
             full_adv_traj[4:-4, 0],
             full_adv_traj[4:-4, 1],

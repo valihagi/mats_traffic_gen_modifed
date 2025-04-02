@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import json
 import logging
 import pickle
@@ -43,8 +44,8 @@ import subprocess
 
 progress_file = "/workspace/shared/progress.txt"
 
-autoware_container_name = "agitated_babbage"
-bridge_container_name = "recursing_driscoll"
+autoware_container_name = "practical_yalow"
+bridge_container_name = "confident_heyrovsky"
 carla_container_name = "stupefied_villani"
 
 autoware_terminal = "/dev/pts/2"
@@ -57,7 +58,7 @@ This example shows how to use the CarlaVisualizationWrapper to create visualizat
 inside the CARLA simulator. The visualization is done by adding a callback to the wrapper.
 """
 
-NUM_EPISODES = 200
+NUM_EPISODES = 500
 
 
 def compute_WD(gt, other):
@@ -93,13 +94,14 @@ def main(args):
         print(f"[Main] Progress written: {0}")
     rclpy.init()
     pose_publisher = PosePublisher()
-    SEED = 226
+    SEED = int(datetime.now().timestamp())
     random.seed(SEED)
     np.random.seed(SEED)
     strategy = args.strategy
+    test_xosc = "test"
 
     env = mats_gym.openscenario_env(
-        scenario_files="scenarios/open_scenario/test.xosc",
+        scenario_files=f"scenarios/open_scenario/{test_xosc}.xosc",
         host=args.carla_host,
         port=args.carla_port,
         seed=SEED,
@@ -130,19 +132,30 @@ def main(args):
     #dummy target point for ego, needs to be set for xosc scenarios
     # Hardcoded for now since ego behaviour is not specified in our xosc file
     #(76,17)
-    direction_vector = (-1, 0)
-    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
-    angle_deg = math.degrees(angle_rad)
+    
     
     """target_point = carla.Transform(
         carla.Location(55, -13.5, 0.0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
     )"""
     #other scenario
+    
+    direction_vector = (-1, 0)
+    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+    angle_deg = math.degrees(angle_rad)
     target_point = carla.Transform(
         carla.Location(82.5, -70, 0.0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
     )
+
+    #test2.xosc
+    """direction_vector = (0, -1)
+    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+    angle_deg = math.degrees(angle_rad)
+    target_point = carla.Transform(
+        carla.Location(43.5, -40, 0),  # Assuming Z = 0 for ground level
+        carla.Rotation(yaw=angle_deg)
+    )"""
     autoware_target_point = None #"""{
             #'x': 71.0,
             #'y': -13.5,
@@ -155,6 +168,8 @@ def main(args):
     print("Target point is:----------------:")
     print(target_point)
     #get same as in scenic scneario should work
+
+    ran_counter = 0
 
     if strategy == "doe":
         print("USING Active DoE")
@@ -174,11 +189,16 @@ def main(args):
                 measurements = []
 
                 for candidate in candidates:
+                    ran_counter += 1
                     traj = None
                     ##unpack candiates and insert them into env.scenario
-                    parameters = candidate["Variations"]
+                    variations = candidate["Variations"]
+                    print("parameters are: ")
+                    print(variations)
                     obs, info = env.reset(options={
                         })
+                    
+                    CarlaDataProvider.get_world().tick()
                     
                     #times = generate_timestamps(100, 80, 1, )
                     """times = generate_even_timestamps(80, 18)
@@ -186,13 +206,13 @@ def main(args):
 
                     adv = env.actors["adversary"]
                     adv_loc = adv.get_location()
-                    random_offset = parameters["start_pos_offset"]
+                    random_offset = variations["start_pos_offset"]
                     adv_loc.x = adv_loc.x - random_offset
                     print(random_offset)
                     new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
                     adv.set_transform(new_transform)
                     
-                    adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, parameters)
+                    adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
                     parameters.append(random_offset)
 
                     run_simulation(autoware_container_name=autoware_container_name,
@@ -204,12 +224,14 @@ def main(args):
                        env=env,
                        args=args,
                        scene=None,
-                       iteration=iteration_counter,
+                       iteration=ran_counter,
                        target_point=target_point,
                        strategy=strategy,
                        adv_path=adv_traj,
                        pose_publisher=pose_publisher,
-                       autoware_target_point= autoware_target_point)
+                       autoware_target_point= autoware_target_point,
+                       parameters=parameters,
+                       test_xosc=test_xosc)
                     
                     #get KPIS
                     kpis = env.get_min_ttc_as_dict()
@@ -238,6 +260,7 @@ def main(args):
                     except:
                         print("Carla seems to be down, taking a short timeout and trying again...")
                         time.sleep(60)
+            CarlaDataProvider.get_world().tick()
             already_reset = False
             #times = generate_timestamps(100, 80, .6, 3.5)
             #adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
@@ -344,7 +367,8 @@ def main(args):
                        pose_publisher=pose_publisher,
                        iteration=ran_counter,
                        autoware_target_point= autoware_target_point,
-                       parameters=parameters)
+                       parameters=parameters,
+                       test_xosc=test_xosc)
         
         #get KPIS
 
@@ -357,6 +381,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="cat_iterative")
+    parser.add_argument('--strategy', type=str, default="doe")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)
