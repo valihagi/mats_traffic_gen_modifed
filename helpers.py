@@ -295,10 +295,6 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
     def dist(p1, p2):
         return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
-    # Compute length of a path
-    def compute_length(points):
-        return sum(dist(points[i], points[i - 1]) for i in range(1, len(points)))
-
     # Remove overlapping (prefix-contained) trajectories
     def remove_overlapping_subtrajectories(trajectories):
         sorted_trajectories = sorted(trajectories, key=len, reverse=True)
@@ -308,65 +304,61 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
                 filtered.append(traj)
         return filtered
 
-    # Step 1: Find the starting lane
-    closest_lane = None
+    # Step 1: Find all lanes that contain the start position
+    candidate_lanes = []
     for lane in road_network.lanes:
-        if lane.containsPoint(car_point):
-            closest_lane = lane
-            break
+        if lane.containsPoint(car_point) and lane.centerline:
+            candidate_lanes.append(lane)
 
-    if not closest_lane or not closest_lane.centerline:
+    if not candidate_lanes:
         return []
 
-    # Step 2: Get the start index on the centerline **forward only**
-    centerline_points = [(pt[0], pt[1]) for pt in closest_lane.centerline.points]
-    dists = [dist(start_position, pt) for pt in centerline_points]
-    closest_index = dists.index(min(dists))
+    # Step 2: Generate trajectories from each candidate lane
+    for closest_lane in candidate_lanes:
+        centerline_points = [(pt[0], pt[1]) for pt in closest_lane.centerline.points]
+        dists = [dist(start_position, pt) for pt in centerline_points]
+        closest_index = dists.index(min(dists))
 
-    # Step 3: Skip centerline points behind the start_position
-    # Use heading to determine direction (optional — currently we just go forward from closest)
-    forward_points = centerline_points[closest_index:]
+        # Step 3: Trim centerline points behind start_position
+        forward_points = centerline_points[closest_index:]
 
-    def dfs(current_lane: Lane, path_so_far, distance_so_far, depth):
-        if depth > max_depth or distance_so_far >= max_distance:
-            return
+        def dfs(current_lane, path_so_far, distance_so_far, depth):
+            if depth > max_depth or distance_so_far >= max_distance:
+                return
 
-        centerline = [(pt[0], pt[1]) for pt in current_lane.centerline.points]
-        if not centerline:
-            return
+            centerline = [(pt[0], pt[1]) for pt in current_lane.centerline.points]
+            if not centerline:
+                return
 
-        # Decide starting point list
-        if not path_so_far:
-            # We're at the start — use sliced forward points
-            new_path = [start_position]
-            last_point = start_position
-            points_to_add = forward_points
-        else:
-            new_path = path_so_far[:]
-            last_point = new_path[-1]
-            points_to_add = [(pt[0], pt[1]) for pt in current_lane.centerline.points][1:]
+            if not path_so_far:
+                new_path = [start_position]
+                last_point = start_position
+                points_to_add = forward_points
+            else:
+                new_path = path_so_far[:]
+                last_point = new_path[-1]
+                points_to_add = centerline[1:]
 
-        current_dist = distance_so_far
+            current_dist = distance_so_far
 
-        for pt in points_to_add:
-            step_dist = dist(last_point, pt)
-            if current_dist + step_dist > max_distance:
-                break
-            new_path.append(pt)
-            current_dist += step_dist
-            last_point = pt
+            for pt in points_to_add:
+                step_dist = dist(last_point, pt)
+                if current_dist + step_dist > max_distance:
+                    break
+                new_path.append(pt)
+                current_dist += step_dist
+                last_point = pt
 
-            if min_distance <= current_dist <= max_distance:
-                all_trajectories.append(new_path[:])
+                if min_distance <= current_dist <= max_distance:
+                    all_trajectories.append(new_path[:])
 
-        # Continue to successors
-        for maneuver in current_lane.maneuvers:
-            next_lane = maneuver.connectingLane or maneuver.endLane
-            if next_lane and next_lane.centerline:
-                dfs(next_lane, new_path, current_dist, depth + 1)
+            # Recurse to successors
+            for maneuver in current_lane.maneuvers:
+                next_lane = maneuver.connectingLane or maneuver.endLane
+                if next_lane and next_lane.centerline:
+                    dfs(next_lane, new_path, current_dist, depth + 1)
 
-    # Step 4: Begin traversal from the start position and trimmed centerline
-    dfs(closest_lane, [], 0.0, 0)
+        dfs(closest_lane, [], 0.0, 0)
 
     return remove_overlapping_subtrajectories(all_trajectories)
 
