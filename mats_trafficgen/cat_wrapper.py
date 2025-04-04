@@ -272,7 +272,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                      "euclidean_distance": []}
     
     def get_min_ttc_as_dict(self):
-        return {"min_ttc": min(self.kpis["ttc"])}
+        min_ttc = min(self.kpis["ttc"])
+        if min_ttc == -1:
+            min_ttc = 0
+        elif min_ttc > 500:
+            min_ttc = 500
+        return {"min_ttc": min_ttc}
 
     def _update_actor_ids(self):
         for tl in CarlaDataProvider.get_world().get_actors().filter("traffic.traffic_light"):

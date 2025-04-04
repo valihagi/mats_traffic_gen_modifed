@@ -103,6 +103,14 @@ def change_control_mode(container_name, default_terminal):
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
     return run_docker_command(container_name, command, default_terminal)
+
+def init_gnss_again(container_name, default_terminal):
+    command = (
+        "cd /home/u29r26/developing/autoware && "
+        "source install/setup.bash && "
+        "ros2 service call /api/localization/initialize autoware_adapi_v1_msgs/srv/InitializeLocalization {}"
+    )
+    return run_docker_command(container_name, command, default_terminal)
     
     
 def check_is_stopped(container_name, default_terminal):
@@ -195,7 +203,14 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(500)):
+    for i in tqdm(range(550)):
+        time.sleep(.1)
+        CarlaDataProvider.get_world().tick()
+
+    init = init_gnss_again(autoware_container_name, default_terminal)
+
+    print("\n init autoware again...")
+    for i in tqdm(range(100)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())

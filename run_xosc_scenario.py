@@ -44,7 +44,7 @@ import subprocess
 
 progress_file = "/workspace/shared/progress.txt"
 
-autoware_container_name = "practical_yalow"
+autoware_container_name = "angry_dijkstra"
 bridge_container_name = "confident_heyrovsky"
 carla_container_name = "stupefied_villani"
 
@@ -58,7 +58,7 @@ This example shows how to use the CarlaVisualizationWrapper to create visualizat
 inside the CARLA simulator. The visualization is done by adding a callback to the wrapper.
 """
 
-NUM_EPISODES = 500
+NUM_EPISODES = 1000
 
 
 def compute_WD(gt, other):
@@ -175,18 +175,32 @@ def main(args):
         print("USING Active DoE")
         with open("active_doe_module/setup_xosc.json", "r") as fp:
             setup = json.load(fp)
-    
+            
+        """if len(start_design)>0:
+            measurements = [
+                dict(
+                    Variations=variations,
+                    Responses=run_simulation(variations=variations, setup=setup)
+                ) for variations in start_design
+            ]
+            client.insert_measurements(measurements=measurements)"""
+
         with active_doe_client(hostname="localhost", port=8011, use_sg=False) as doe_client:
             session=doe_client.initialize(setup=setup)
             if session is None:
                 raise Exception("could not initialize session")
 
-            #client.insert_measurements(measurements=measurements) if we want a kickstarting measurement
+            json_file = "/workspace/doe_logs/meas.json"
+            if os.path.exists(json_file):
+                with open(json_file, "r") as f:
+                    data = json.load(f)
+                doe_client.insert_measurements(measurements=data) 
             while True:
 
                 candidates=doe_client.get_candidates(size=1, latest_models_required=True)
                 print(candidates)
                 measurements = []
+                measurements_no_index = []
 
                 for candidate in candidates:
                     ran_counter += 1
@@ -215,23 +229,33 @@ def main(args):
                     adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
                     parameters.append(random_offset)
 
-                    run_simulation(autoware_container_name=autoware_container_name,
-                       bridge_container_name=bridge_container_name,
-                       carla_container_name=carla_container_name,
-                       default_terminal=default_terminal,
-                       autoware_terminal=autoware_terminal,
-                       bridge_terminal=bridge_terminal,
-                       env=env,
-                       args=args,
-                       scene=None,
-                       iteration=ran_counter,
-                       target_point=target_point,
-                       strategy=strategy,
-                       adv_path=adv_traj,
-                       pose_publisher=pose_publisher,
-                       autoware_target_point= autoware_target_point,
-                       parameters=parameters,
-                       test_xosc=test_xosc)
+                    print(f"STARTING scenario... counter: {ran_counter}")
+                    try:
+                        # Your main code
+                        print("RUNNING scenario...")
+
+                        run_simulation(autoware_container_name=autoware_container_name,
+                        bridge_container_name=bridge_container_name,
+                        carla_container_name=carla_container_name,
+                        default_terminal=default_terminal,
+                        autoware_terminal=autoware_terminal,
+                        bridge_terminal=bridge_terminal,
+                        env=env,
+                        args=args,
+                        scene=None,
+                        iteration=ran_counter,
+                        target_point=target_point,
+                        strategy=strategy,
+                        adv_path=adv_traj,
+                        pose_publisher=pose_publisher,
+                        autoware_target_point= autoware_target_point,
+                        parameters=parameters,
+                        test_xosc=test_xosc)
+                    
+                    except Exception as e:
+                        print(f"EXCEPTION: {e}")
+                    finally:
+                        print("SCRIPT EXITED.")
                     
                     #get KPIS
                     kpis = env.get_min_ttc_as_dict()
@@ -240,6 +264,29 @@ def main(args):
                         Variations=candidate['Variations'],
                         Responses=kpis)
                     )
+                    measurements_no_index.append(dict(
+                        Variations=candidate['Variations'],
+                        Responses=kpis)
+                    )
+                    print("-------------measurements below---------------------")
+                    print(type(measurements))
+                    print(measurements)
+                    print("-------------measurements above---------------------")
+
+                if os.path.exists(json_file):
+                    with open(json_file, "r") as f:
+                        try:
+                            existing_data = json.load(f)
+                        except json.JSONDecodeError:
+                            existing_data = []
+                else:
+                    existing_data = []
+
+                # Append and save back
+                existing_data.extend(measurements_no_index)  # assumes new_data is a list
+                with open(json_file, "w") as f:
+                    json.dump(existing_data, f, indent=2)
+                
                 doe_client.insert_measurements(measurements=measurements)   
             return
     ran_counter = 0
@@ -352,23 +399,33 @@ def main(args):
         world.tick()l
         time.sleep(100)"""
 
-        run_simulation(autoware_container_name=autoware_container_name,
-                       bridge_container_name=bridge_container_name,
-                       carla_container_name=carla_container_name,
-                       default_terminal=default_terminal,
-                       autoware_terminal=autoware_terminal,
-                       bridge_terminal=bridge_terminal,
-                       env=env,
-                       args=args,
-                       scene=None,
-                       target_point=target_point,
-                       strategy=strategy,
-                       adv_path=adv_traj,
-                       pose_publisher=pose_publisher,
-                       iteration=ran_counter,
-                       autoware_target_point= autoware_target_point,
-                       parameters=parameters,
-                       test_xosc=test_xosc)
+        print(f"STARTING scenario... counter: {ran_counter}")
+        try:
+            # Your main code
+            print("RUNNING scenario...")
+        
+
+            run_simulation(autoware_container_name=autoware_container_name,
+                        bridge_container_name=bridge_container_name,
+                        carla_container_name=carla_container_name,
+                        default_terminal=default_terminal,
+                        autoware_terminal=autoware_terminal,
+                        bridge_terminal=bridge_terminal,
+                        env=env,
+                        args=args,
+                        scene=None,
+                        target_point=target_point,
+                        strategy=strategy,
+                        adv_path=adv_traj,
+                        pose_publisher=pose_publisher,
+                        iteration=ran_counter,
+                        autoware_target_point= autoware_target_point,
+                        parameters=parameters,
+                        test_xosc=test_xosc)
+        except Exception as e:
+            print(f"EXCEPTION: {e}")
+        finally:
+            print("SCRIPT EXITED.")
         
         #get KPIS
 

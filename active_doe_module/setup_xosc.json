@@ -2,7 +2,7 @@
   "Settings": {
     "Algorithm": {
       "StopCriteriaMinIterations": 0,
-      "StopCriteriaMaxIterations": 500,
+      "StopCriteriaMaxIterations": 800,
       "StopCriteriaWindow": 5,
       "QualityThreshold": 0.5,
       "OptimizePCT": 0.2,
@@ -70,7 +70,7 @@
   "Responses": [
     {
       "Name": "min_ttc",
-      "Max": 1.0,
+      "Max": 1.75,
       "Min": 0.0,
       "Optimization": 1,
       "ModelType": null

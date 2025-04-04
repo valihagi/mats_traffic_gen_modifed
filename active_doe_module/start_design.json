@@ -1,6 +1,8 @@
 [
   {
-    "Cell_density_CPSI1": 200.0,
-    "Wall_thickness1": 0.5
+    "acceleration": 0.40044034952669527,
+    "max_speed": 19.39107468628339,
+    "start_pos_offset": -4.513951428578361,
+    "turn_idx": 1.0
   }
 ]
