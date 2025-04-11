@@ -189,8 +189,13 @@ def main(args):
             session=doe_client.initialize(setup=setup)
             if session is None:
                 raise Exception("could not initialize session")
+            
+            json_file_number = 1
 
-            json_file = "/workspace/doe_logs/meas.json"
+            logs = "/workspace/doe_logs/"
+
+            json_file = f"{logs}meas{json_file_number}.json"
+            samples_file = f"{logs}samples{json_file_number}.json"
             if os.path.exists(json_file):
                 with open(json_file, "r") as f:
                     data = json.load(f)
@@ -204,58 +209,61 @@ def main(args):
 
                 for candidate in candidates:
                     ran_counter += 1
-                    traj = None
-                    ##unpack candiates and insert them into env.scenario
-                    variations = candidate["Variations"]
-                    print("parameters are: ")
-                    print(variations)
-                    obs, info = env.reset(options={
-                        })
-                    
-                    CarlaDataProvider.get_world().tick()
-                    
-                    #times = generate_timestamps(100, 80, 1, )
-                    """times = generate_even_timestamps(80, 18)
-                    adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
+                    aw_started = False
+                    while not aw_started:
+                        traj = None
+                        ##unpack candiates and insert them into env.scenario
+                        variations = candidate["Variations"]
+                        print("parameters are: ")
+                        print(variations)
+                        obs, info = env.reset(options={
+                            })
+                        
+                        CarlaDataProvider.get_world().tick()
+                        
+                        #times = generate_timestamps(100, 80, 1, )
+                        """times = generate_even_timestamps(80, 18)
+                        adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
 
-                    adv = env.actors["adversary"]
-                    adv_loc = adv.get_location()
-                    random_offset = variations["start_pos_offset"]
-                    adv_loc.x = adv_loc.x - random_offset
-                    print(random_offset)
-                    new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
-                    adv.set_transform(new_transform)
-                    
-                    adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
-                    parameters.append(random_offset)
+                        adv = env.actors["adversary"]
+                        adv_loc = adv.get_location()
+                        random_offset = variations["start_pos_offset"]
+                        adv_loc.x = adv_loc.x - random_offset
+                        print(random_offset)
+                        new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
+                        adv.set_transform(new_transform)
+                        
+                        adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
+                        parameters.append(random_offset)
 
-                    print(f"STARTING scenario... counter: {ran_counter}")
-                    try:
-                        # Your main code
-                        print("RUNNING scenario...")
+                        print(f"STARTING scenario... counter: {ran_counter}")
+                        try:
+                            # Your main code
+                            print("RUNNING scenario...")
 
-                        run_simulation(autoware_container_name=autoware_container_name,
-                        bridge_container_name=bridge_container_name,
-                        carla_container_name=carla_container_name,
-                        default_terminal=default_terminal,
-                        autoware_terminal=autoware_terminal,
-                        bridge_terminal=bridge_terminal,
-                        env=env,
-                        args=args,
-                        scene=None,
-                        iteration=ran_counter,
-                        target_point=target_point,
-                        strategy=strategy,
-                        adv_path=adv_traj,
-                        pose_publisher=pose_publisher,
-                        autoware_target_point= autoware_target_point,
-                        parameters=parameters,
-                        test_xosc=test_xosc)
-                    
-                    except Exception as e:
-                        print(f"EXCEPTION: {e}")
-                    finally:
-                        print("SCRIPT EXITED.")
+                            aw_started = run_simulation(autoware_container_name=autoware_container_name,
+                            bridge_container_name=bridge_container_name,
+                            carla_container_name=carla_container_name,
+                            default_terminal=default_terminal,
+                            autoware_terminal=autoware_terminal,
+                            bridge_terminal=bridge_terminal,
+                            env=env,
+                            args=args,
+                            scene=None,
+                            iteration=ran_counter,
+                            target_point=target_point,
+                            strategy=strategy,
+                            adv_path=adv_traj,
+                            pose_publisher=pose_publisher,
+                            autoware_target_point= autoware_target_point,
+                            parameters=parameters,
+                            test_xosc=test_xosc)
+                            print(f"AW started: {aw_started}")
+                        
+                        except Exception as e:
+                            print(f"EXCEPTION: {e}")
+                        finally:
+                            print("SCRIPT EXITED.")
                     
                     #get KPIS
                     kpis = env.get_min_ttc_as_dict()
@@ -287,8 +295,88 @@ def main(args):
                 with open(json_file, "w") as f:
                     json.dump(existing_data, f, indent=2)
                 
-                doe_client.insert_measurements(measurements=measurements)   
+                doe_client.insert_measurements(measurements=measurements)
+
+                if candidates is not None and any([c['Panel']['Algorithm']['StopRecommended'] for c in candidates]):
+                    print(f"Model building finished, samples can be found in {samples_file}.")
+                    samples = doe_client.get_samples(size=30)
+                    with open(samples_file, "w") as f:
+                        json.dump(samples, f, indent=2)
+                    results_file=os.path.join(logs, f'test_result_doe.csv')
+                    doe_client.write_result(file_path=results_file)
+                    break
+            print("exiting DoE")
             return
+        
+    if strategy == "doe_finished":
+        print("USING Active DoE finished samples")
+            
+        json_file_number = 1
+
+        json_file = f"/workspace/doe_logs/meas{json_file_number}.json"
+        samples_file = f"/workspace/doe_logs/samples{json_file_number}.json"
+        if os.path.exists(samples_file):
+            with open(samples_file, "r") as f:
+                data = json.load(f)
+
+        for candidate in data:
+            ran_counter += 1
+            traj = None
+            ##unpack candiates and insert them into env.scenario
+            variations = candidate["Variations"]
+            print("parameters are: ")
+            print(variations)
+            obs, info = env.reset(options={
+                })
+            
+            CarlaDataProvider.get_world().tick()
+            
+            #times = generate_timestamps(100, 80, 1, )
+            """times = generate_even_timestamps(80, 18)
+            adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
+
+            adv = env.actors["adversary"]
+            adv_loc = adv.get_location()
+            random_offset = variations["start_pos_offset"]
+            adv_loc.x = adv_loc.x - random_offset
+            print(random_offset)
+            new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
+            adv.set_transform(new_transform)
+            
+            adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
+            parameters.append(random_offset)
+
+            print(f"STARTING scenario... counter: {ran_counter}")
+            try:
+                # Your main code
+                print("RUNNING scenario...")
+
+                run_simulation(autoware_container_name=autoware_container_name,
+                bridge_container_name=bridge_container_name,
+                carla_container_name=carla_container_name,
+                default_terminal=default_terminal,
+                autoware_terminal=autoware_terminal,
+                bridge_terminal=bridge_terminal,
+                env=env,
+                args=args,
+                scene=None,
+                iteration=ran_counter,
+                target_point=target_point,
+                strategy=strategy,
+                adv_path=adv_traj,
+                pose_publisher=pose_publisher,
+                autoware_target_point= autoware_target_point,
+                parameters=parameters,
+                test_xosc=test_xosc)
+            
+            except Exception as e:
+                print(f"EXCEPTION: {e}")
+            finally:
+                print("SCRIPT EXITED.")
+
+        print("finished running all samples, exiting now...")
+
+        return
     ran_counter = 0
     iteration_counter = 0
     already_reset = False

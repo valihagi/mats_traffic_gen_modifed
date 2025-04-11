@@ -313,7 +313,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         dict[AgentID, bool],
         dict[AgentID, dict],
     ]:
-        obs, rewards, terminated, truncated, info = self.env.step(actions)
+        print("before stepping")
+        try:
+            obs, rewards, terminated, truncated, info = self.env.step(actions)
+        except:
+            print("couldnt step env... for some reason")
+        print("after stepping parent")
         world = CarlaDataProvider.get_world()
 
         if info["__common__"]["current_frame"] % self._sample_frequency == 0:
@@ -513,25 +518,25 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
-                visualize_traj(
+                """visualize_traj(
                     full_adv_traj[4:-4, 0],
                     full_adv_traj[4:-4, 1],
                     full_adv_traj[4:-4, 2],
                     1.4,
                     2.9,
                     (5, 0, 0)
-                )
+                )"""
                 res[j] += 0
                 min_dist[j] = 1000000000000
                 continue
-            visualize_traj(
+            """visualize_traj(
                 full_adv_traj[4:-4, 0],
                 full_adv_traj[4:-4, 1],
                 full_adv_traj[4:-4, 2],
                 1.4,
                 2.9,
                 (0, 5, 5)
-            )
+            )"""
             #------------------------
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
@@ -574,14 +579,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     full_ego_traj,
                     np.rad2deg(get_polyline_yaw(full_ego_traj)).reshape(-1, 1)
                 ], axis=1)
-                visualize_traj(
+                """visualize_traj(
                     full_ego_traj[4:-4, 0],
                     full_ego_traj[4:-4, 1],
                     full_ego_traj[4:-4, 2],
                     1,
                     2.4,
                     (5, 5, 5)
-                )
+                )"""
 
                 bbox_AV = np.concatenate((traj_AV, yaw_AV, \
                                           traj_AV[:, 0].reshape(-1,
@@ -918,7 +923,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         trajectory = [(x, -y, -z) for x, y, z in trajectory_yaw_corrected]
         if traj_ov is not None:
             adv_vel = np.linalg.norm(get_polyline_vel(traj_ov), axis=1).reshape(-1, 1)
-            if max(adv_vel) > 55:
+            if max(adv_vel) > 69:
                 print(f"Speed limit exceeded")
                 if True:    
                     print(f"Trajectory INVALID:  violations found.")
@@ -976,7 +981,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     yaw_differences.append(yaw_diff)
 
                 if all(diff > 80 for diff in yaw_differences):
-                    print(f"Yaw misalignment at ({x1}, {y1})")
+                    #print(f"Yaw misalignment at ({x1}, {y1})")
                     invalid_points.append((x1, y1))
                     invalid_reasons.append("Yaw Misalignment from one of the traj points.")
                     if not debug:
@@ -1019,7 +1024,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                         invalid_reasons.append("Yaw Misalignment from one of the corner points of bounding box")
                         if not debug:
                             return False  
-                        continue  # Move to next point
+                        continue  # Move to next pointF
 
 
         if invalid_points:
@@ -2047,12 +2052,12 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         return new_x, new_y
 
 
-    def _generate_adversarial_route_iterative(self):
+    def _generate_adversarial_route_iterative(self, vis=False):
         features, ego_route = self._get_features_iterative()
 
         pred_trajectory, pred_score = self._sample_trajectories(features)
         scores = self._score_trajectories(pred_trajectory, pred_score, features)
-        adv_traj_id, adv_traj, ego_traj = self._select_colliding_trajectory_iterative(features, pred_score, pred_trajectory)
+        adv_traj_id, adv_traj, ego_traj = self._select_colliding_trajectory_iterative(features, pred_score, pred_trajectory, vis)
 
         return features, adv_traj, ego_traj
 
@@ -2151,7 +2156,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         ])
         return state_features, ego_route
 
-    def _select_colliding_trajectory_iterative(self, features, pred_score, pred_trajectory):
+    def _select_colliding_trajectory_iterative(self, features, pred_score, pred_trajectory, vis=False):
         trajs_OV = pred_trajectory[self.agents.index(self._adv_agent)]
         probs_OV = pred_score[self.agents.index(self._adv_agent)]
         probs_OV[:] = probs_OV[0]
@@ -2194,14 +2199,15 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 res[j] += 0
                 min_dist[j] = 10000000
                 continue
-            """visualize_traj(
-                    full_adv_traj[4:-4, 0],
-                    full_adv_traj[4:-4, 1],
-                    full_adv_traj[4:-4, 2],
-                    1.4,
-                    2.9,
-                    (5, 5, 5)
-                )"""
+            if vis:
+                visualize_traj(
+                        full_adv_traj[4:-4, 0],
+                        full_adv_traj[4:-4, 1],
+                        full_adv_traj[4:-4, 2],
+                        1.4,
+                        2.9,
+                        (5, 5, 5)
+                    )
             yaw_OV = get_polyline_yaw(trajs_OV[j])[::5].reshape(-1, 1)
             width_OV = adv_width
             length_OV = adv_length
@@ -2330,6 +2336,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             adv_traj_id = np.argmax(res)
         else:
             adv_traj_id = np.argmin(min_dist)
+            if min(min_dist) == 10000000:
+                return None, None, None
 
         """hist_AV = self.AV_history[:,:11, :2]
 

@@ -17,7 +17,7 @@
       }
     },
     "Modeling": {
-      "StopCriteriaMinQuality": 0.8,
+      "StopCriteriaMinQuality": 0.95,
       "StopCriteriaTolerance": 0.1,
       "ModelType": "activedoe",
       "Smoothing": 0.1,
@@ -35,10 +35,10 @@
   },
   "Variations": [
     {
-      "HardMin": -10.0,
+      "HardMin": -6.0,
       "Min": -5.0,
       "Max": 5.0,
-      "HardMax": 10.0,
+      "HardMax": 6.0,
       "Level": null,
       "Name": "start_pos_offset"
     },
@@ -70,7 +70,7 @@
   "Responses": [
     {
       "Name": "min_ttc",
-      "Max": 1.75,
+      "Max": 1.8,
       "Min": 0.0,
       "Optimization": 1,
       "ModelType": null

@@ -286,7 +286,7 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
         list of list of (x, y): Each trajectory is a list of (x, y) tuples.
     """
     min_distance = 30
-    max_distance = 80
+    max_distance = 100
     car_point = Point(start_position)
 
     all_trajectories = []
@@ -406,6 +406,11 @@ def create_random_traj(ego_loc, network, parameters=None):
         idx = random.randint(0, len(trajs) - 1)
         random_max_speed = random.uniform(2.5, 15)
         random_acc = random.uniform(.4, 1.5)
+    """for traj in trajs:
+        print(traj[0])
+        print(traj[-1])
+        print("--------------")
+    time.sleep(10000000)"""
 
     traj1 = resample_trajectory_to_equal_distance(trajs[int(idx)])
     traj1 = traj1[:120]

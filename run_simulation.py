@@ -45,7 +45,7 @@ class WaitingTime(IntEnum):
     STARTTRIGGERSPEED = 2
     WAITFORAUTONOMOUS = 80
     MAXSTARTDELAY = 250
-    MAXTIMESTEPS = 280
+    MAXTIMESTEPS = 240
     COORDINATECHECK = 45.8
     COORDINATECHECK2 = 23.8
 
@@ -164,9 +164,9 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
                    bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None,
                    test_xosc=None):
     #run_docker_restart_command(carla_container_name, default_terminal)
-    obs, info = env.reset(options={
+    """obs, info = env.reset(options={
                 "scene": scene
-            })
+            })"""
     print("sleeping now")
     print("test")
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
@@ -203,16 +203,16 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(550)):
+    for i in tqdm(range(470)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
 
-    init = init_gnss_again(autoware_container_name, default_terminal)
+    #init = init_gnss_again(autoware_container_name, default_terminal)
 
-    print("\n init autoware again...")
+    """print("\n init autoware again...")
     for i in tqdm(range(100)):
         time.sleep(.1)
-        CarlaDataProvider.get_world().tick()
+        CarlaDataProvider.get_world().tick()"""
     #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
     # Wait until the vehicle is stopped
     #motion_state_subscriber.wait_until_stopped()
@@ -256,18 +256,22 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     counter = 0
     collision = False
     while not done:
-        if (counter == 30 or counter == 89 or counter == 130) and strategy == "cat_iterative":
+        if (counter == 40 or counter == 100 or counter == 140) and strategy == "cat_iterative":
             start = time.time()
-            _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
-            traj = [
-                (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
-                for point in adv_traj
-            ]
-            adv_agent = TrajectoryFollowingAgent(
-                vehicle=env.actors["adversary"],
-                trajectory=traj
-            )
-            agents["adversary"] = adv_agent
+            if counter > 50:
+                _, adv_traj, ego_traj = env._generate_adversarial_route_iterative(vis=True)
+            else:
+                _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
+            if adv_traj is not None:
+                traj = [
+                    (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
+                    for point in adv_traj
+                ]
+                adv_agent = TrajectoryFollowingAgent(
+                    vehicle=env.actors["adversary"],
+                    trajectory=traj
+                )
+                agents["adversary"] = adv_agent
             end = time.time()
             print(end - start)
         counter += 1
@@ -308,15 +312,24 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     #--------------------return if we are not within a CAT run-----------------------
     print(strategy)
     if strategy != "cat":
+        #check if AW moved:
+        ego_traj = env._trajectories["ego_vehicle"]
+        started = math.hypot(ego_traj[0]["x"] - ego_traj[-1]["x"], ego_traj[0]["y"] - ego_traj[-1]["y"]) > 2
+            
         # calc metrics and return them / also save trajectories that where executed
-        save_log_file(env, info, parameters, strategy, test_xosc)
+        if started:
+            save_log_file(env, info, parameters, strategy, test_xosc)
 
-        if iteration % 5 == 0 and iteration > 0:
+        if not started:
+            print("AW did not start!!")
+            return False
+        if iteration % 8 == 0 and iteration > 0:
             with open(progress_file, "w") as f:
                 f.write(str(1))
             print(f"[Main] Progress written: {1}")
             time.sleep(120)
-        return
+        
+        return True
     print(num_iterations)
     for iteration in range(num_iterations):
         print(f"Starting ADV scenario iteration {iteration} \n")
@@ -432,7 +445,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         run_docker_restart_command(bridge_container_name, default_terminal)
 
         save_log_file(env, info, parameters, strategy, test_xosc)
-        if iteration % 7 == 0 and iteration > 0:
+        if iteration % 8 == 0 and iteration > 0:
             with open(progress_file, "w") as f:
                 f.write(str(1))
             print(f"[Main] Progress written: {1}")
