@@ -1,0 +1,79 @@
+{
+  "Settings": {
+    "Algorithm": {
+      "StopCriteriaMinIterations": 0,
+      "StopCriteriaMaxIterations": 100,
+      "StopCriteriaWindow": 5,
+      "QualityThreshold": 0.5,
+      "OptimizePCT": 0.2,
+      "ListBuffer": 1,
+      "RefreshInterval": 1.0,
+      "OutputWeightIncreaseFactor": 0.0,
+      "NeighboringRadius": 0.1,
+      "FastSpaceFilling": false,
+      "RepetitionPoints": {
+        "Points": [],
+        "Repetitions": 0
+      }
+    },
+    "Modeling": {
+      "StopCriteriaMinQuality": 0.8,
+      "StopCriteriaTolerance": 0.1,
+      "ModelType": "activedoe",
+      "Smoothing": 0.1,
+      "SignificanceThreshold": 0.05
+    },
+    "Coverage": {
+      "StopCriteriaTolerance": 0.1,
+      "MaxDesignSpaceVariations": 6,
+      "Smoothing": 0.1
+    },
+    "Criticality": {
+      "StopCriteriaTolerance": 0.1,
+      "Samples": 100000
+    }
+  },
+  "Variations": [
+    {
+      "HardMin": 30.0,
+      "Min": 45.0,
+      "Max": 55.0,
+      "HardMax": 70.0,
+      "Level": null,
+      "Name": "distance_to_target"
+    },
+    {
+      "HardMin": -1.57,
+      "Min": -1.57,
+      "Max": 1.57,
+      "HardMax": 1.57,
+      "Level": null,
+      "Name": "angle_to_target"
+    },
+    {
+      "HardMin": 10.0,
+      "Min": 20.0,
+      "Max": 30.0,
+      "HardMax": 40.0,
+      "Level": null,
+      "Name": "distance_to_control"
+    },
+    {
+      "HardMin": -1.57,
+      "Min": -1.57,
+      "Max": 1.57,
+      "HardMax": 1.57,
+      "Level": null,
+      "Name": "angle_to_control"
+    }
+  ],
+  "Responses": [
+    {
+      "Name": "ttc",
+      "Max": 2.0,
+      "Min": 0.0,
+      "Optimization": 1,
+      "ModelType": null
+    }
+  ]
+}

@@ -26,13 +26,18 @@ class TrajectoryFollowingAgent(BasicAgent):
             args_lateral={'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt},
             args_longitudinal={'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
         )
-        self._max_throt = 0.5
+        self._max_throt = 0.75
         self._max_brake = 0.3
         self._max_steer = 0.8
 
     def run_step(self):
-        if self._current >= len(self.path):
-            return carla.VehicleControl()
+        if self._current >= len(self.path) - 1:
+            #TODO need to decide whether it should just continue straight or it should brake
+            ctrl = carla.VehicleControl()
+            ctrl.throttle = 0
+            ctrl.brake = .2
+            ctrl.steer = 0
+            return ctrl
 
         target_v, target_loc = self.velocities[self._current], self.path[self._current]
         tf = carla.Transform(target_loc, carla.Rotation())

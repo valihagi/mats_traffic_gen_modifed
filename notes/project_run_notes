@@ -1,0 +1,52 @@
+--------------------------------carla------------------------------
+sudo docker run --privileged --rm --gpus all --net=host -e DISPLAY=$DISPLAY carlasim/carla:0.9.15 /bin/bash ./CarlaUE4.sh -quality-level=Low
+
+
+----------------------------autoware-------------------
+rocker --network=host -rm -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /home/u29r26/developing -- ghcr.io/autowarefoundation/autoware:humble-2024.01-cuda-amd64
+
+rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /work/Valentin_dev/tumgeka_bridge -- ghcr.io/autowarefoundation/autoware-universe:humble-2024.01-cuda-amd64
+
+cd /home/u29r26/developing/autoware
+source install/setup.bash
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/home/u29r26/developing/Town10 launch_system:=false
+
+
+----------------------bridge----------------------------------docker run -it -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp --network host tumgeka/carla-autoware-bridge:latest
+docker run -it --rm -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp --network host tumgeka/carla-autoware-bridge:latest
+ros2 launch carla_autoware_bridge carla_aw_bridge.launch.py port:=2000 passive:=True register_all_sensors:=False timeout:=180
+
+
+
+--------mats_traffic-gen----------------------------
+./scripts/run-docker
+
+
+
+'spawn_sensors_only': 'True',
+
+
+-----------------------activeDoE------------------------
+docker run -it --rm -p 8011:8011 docker.avl.com/avl/cameo/active_doe:latest
+
+-----controller-------
+python3 controller.py 
+
+sudo chown $USER:$USER *.json
+
+
+docker run -it --rm -p 8011:8011 docker.avl.com/avl/cameo/active_doe:latest --lic "27000@ATGRZSW2891"
+
+
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town10 launch_system:=false
+
+ros2 launch carla_autoware_bridge carla_aw_bridge.launch.py port:=2000  register_all_sensors:=False timeout:=180
+
+
+-v /home/u29r26/developing/mats_traffic_gen_modifed/active_doe_module/e08f4c81cc61_2025-04-01_119001_license.lic:active_doe_module/e08f4c81cc61_2025-04-01_119001_license.lic
+
+docker run -it --rm --name activeDoe -v /home/u29r26/developing/mats_traffic_gen_modifed/active_doe_module/:/home/u29r26/developing/mats_traffic_gen_modifed/active_doe_module/ --network host -e LM_LICENSE_FILE="/home/u29r26/developing/mats_traffic_gen_modifed/active_doe_module/e08f4c81cc61__2025-04-02_119012_license.lic" -p 8011:8011 docker.avl.com/avl/cameo/active_doe:latest
+
+
+
+

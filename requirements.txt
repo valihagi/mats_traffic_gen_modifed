@@ -1,3 +1,4 @@
-git+https://github.com/AutonomousDrivingExaminer/mats-gym.git
+git+https://github.com/valihagi/mats-gym.git
 git+https://github.com/metadriverse/metadrive.git
+matplotlib
 

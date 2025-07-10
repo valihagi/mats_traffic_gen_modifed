@@ -1,0 +1,58 @@
+have 'spawn_sensors_only': 'True',
+in carla_Autoware_ego_vehicle.launch.py in tum/src/carla_autoware_bridge/launch
+
+change objects.json in same folder 
+to have name "ego_vehicle" and vehiceltype: vehicle.volkswagen.t2_2021
+
+chaneg everything to be ego_vehicle instead of just ego also in scneario file!!
+
+dont allow other sensors other then the ones spawned by bridge
+
+
+
+start docker containers manually and only use docker exec to send the ros2 run command to them from code (Need to know names of containers)
+autoware_launch/autoware_launch/config/planning/scenario_planning/lane_driving/behavior_planning/behavior_velocity_planner
+
+1)------------------
+docker run --privileged --gpus all --net=host -e DISPLAY=$DISPLAY carlasim/carla:0.9.15 /bin/bash ./CarlaUE4.sh
+./CarlaUE4.sh
+"""export DISPLAY=:0.0
+"""docker run --privileged --gpus all --net=host -e SDL_AUDIODRIVER=dummy -e DISPLAY=$DISPLAY carlasim/carla:0.9.15 /bin/bash ./CarlaUE4.sh -carla-rpc-port=2000 -quality-level=Low
+
+2)-------------------
+(to build: ./docker/build_docker.sh)
+docker run -it -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp --network host tumgeka/carla-autoware-bridge:latest
+ros2 launch carla_autoware_bridge carla_aw_bridge.launch.py port:=2000 town:=Town10HD
+
+or
+ros2 launch carla_autoware_bridge carla_aw_bridge.launch.py port:=2000 passive:=True
+
+ros2 launch carla_autoware_bridge carla_aw_bridge.launch.py port:=2000 passive:=True register_all_sensors:=False timeout:=180
+
+3)-------------------
+ln -s /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware/install/carla_t2_sensor_kit_description/share/carla_t2_sensor_kit_description/config /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware/install/individual_params/share/individual_params/config/default/carla_t2_sensor_kit
+
+ros2 launch autoware_launch planning_simulator.launch.xml map_path:=/work/Valentin_dev/tumgeka_bridge/Town05 vehicle_model:=sample_vehicle sensor_model:=sample_sensor_kit
+--
+rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /work/Valentin_dev/tumgeka_bridge -- ghcr.io/autowarefoundation/autoware:humble-2024.01-cuda-amd64
+
+rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /work/Valentin_dev/tumgeka_bridge -- ghcr.io/autowarefoundation/autoware-universe:humble-2024.01-cuda-amd64
+cd /work/Valentin_dev/tumgeka_bridge/autoware/
+source install/setup.bash
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town05
+
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town10
+
+w/o fail checks:
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town10 launch_system:=false
+
+ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town01
+
+(cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/)
+
+4)-------------
+mats Gym
+
+./scripts/run-docker-cat-example.sh
+
+align_pose_output

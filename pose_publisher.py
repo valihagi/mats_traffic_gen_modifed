@@ -37,7 +37,11 @@ class PosePublisher(Node):
         self.publisher_.publish(pose_msg)
         self.get_logger().info('Publishing: {}'.format(pose_msg))
         
-    def convert_from_carla_to_autoware(self, carla_point):
+    def convert_from_carla_to_autoware(self, carla_point, autoware_point=None):
+        if autoware_point:
+            print("target point chosen from autowarePoint \n")
+            self.pose_msg = autoware_point
+            return
         carla_location = carla_point.location 
         carla_rotation = carla_point.rotation
         # Convert CARLA coordinates to Autoware coordinates

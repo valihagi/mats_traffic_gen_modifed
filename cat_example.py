@@ -4,7 +4,6 @@ import pickle
 import random
 
 import carla
-import time
 import mats_gym
 import numpy as np
 import scenic
@@ -16,17 +15,6 @@ from mats_trafficgen.cat_wrapper import AdversarialTrainingWrapper
 from cat.advgen.adv_generator import AdvGenerator
 from mats_trafficgen.level_generator import LevelGenerator
 from mats_trafficgen.trajectory_following import TrajectoryFollowingAgent
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
-import rclpy
-from std_msgs.msg import String
-from time import sleep
-from rclpy.node import Node
-from geometry_msgs.msg import PoseWithCovarianceStamped
-from std_msgs.msg import Header
-from pose_publisher import PosePublisher
-
-import subprocess
-
 
 """
 This example shows how to use the CarlaVisualizationWrapper to create visualizations
@@ -75,40 +63,6 @@ def main(args):
         level=logging.INFO,
         format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
     )
-    
-    process = subprocess.Popen(['/bin/bash'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    process.stdin.write(".rocker --network=host -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e LIBGL_ALWAYS_SOFTWARE=1 --x11 --nvidia --volume /work/Valentin_dev/tumgeka_bridge -- ghcr.io/autowarefoundation/autoware-universe:humble-2024.01-cuda-amd64\n")
-    process.stdin.flush()
-    while True:
-        output = process.stdout.readline()
-        print(output)
-        if output == '' and process.poll() is not None:
-            break
-        if output:
-            print(f"OUTPUT: {output.strip()}")
-    print("made1")        
-    process.stdin.write("cd /work/Valentin_dev/tumgeka_bridge/autoware/\n")
-    process.stdin.flush()
-    while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
-            break
-        if output:
-            print(f"OUTPUT: {output.strip()}")
-    print("made2")   
-    process.stdin.write("source install/setup.bash\n")
-    process.stdin.flush()
-    
-    while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
-            break
-        if output:
-            print(f"OUTPUT: {output.strip()}")
-    print("made3")   
-    
-    process.stdin.write("ros2 launch autoware_launch e2e_simulator.launch.xml vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit map_path:=/work/Valentin_dev/tumgeka_bridge/Town05\n")
-    process.stdin.flush()
 
     SEED = 226
     random.seed(SEED)
@@ -119,27 +73,26 @@ def main(args):
         host=args.carla_host,
         port=args.carla_port,
         seed=SEED,
-        agent_name_prefixes=["ego_vehicle", "adversary"],
+        agent_name_prefixes=["ego", "adversary"],
         scenes=scene,
         render_mode="human",
-        render_config=camera_pov(agent="ego_vehicle"),
-        max_time_steps=2000
+        render_config=camera_pov(agent="ego"),
+        max_time_steps=200
     )
 
     env = AdversarialTrainingWrapper(
         env=env,
         args=args,
         model_path="cat/advgen/pretrained/densetnt.bin",
-        ego_agent="ego_vehicle",
+        ego_agent="ego",
         adv_agents="adversary",
     )
 
     def joint_policy(agents):
         actions = {}
         for agent in agents:
-            if agent != "ego_vehicle":
-            #ctrl = agents[agent].run_step()
-                actions[agent] = np.array([.45, 0, 0])
+            ctrl = agents[agent].run_step()
+            actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
         return actions
 
     for e in range(NUM_EPISODES):
@@ -147,44 +100,10 @@ def main(args):
             "scene": scene
         })
         agents = get_agents(env)
-        client = carla.Client(args.carla_host, args.carla_port)
         done = False
-        
-
-        counter = 0
-        while counter < 650:
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
-
-        CarlaDataProvider.get_world().tick()
-        rclpy.init()
-        pose_publisher = PosePublisher()
-
-        try:
-             rclpy.spin_once(pose_publisher, timeout_sec=2)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            pose_publisher.destroy_node()
-            rclpy.shutdown()
-
-
-        counter = 0
-        while counter < 200:
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
-        
-
-        
         while not done:
-            
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
-            time.sleep(.1)
             done = all(done.values())
             env.render()
 
@@ -203,42 +122,13 @@ def main(args):
         )
         agents = get_agents(env)
         agents["adversary"] = adv_agent
-        
-        counter = 0
-        while counter < 650:
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
 
-        CarlaDataProvider.get_world().tick()
-        rclpy.init()
-        pose_publisher = PosePublisher()
-
-        try:
-             rclpy.spin_once(pose_publisher, timeout_sec=2)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            pose_publisher.destroy_node()
-            rclpy.shutdown()
-
-
-        counter = 0
-        while counter < 200:
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-            print(f"{counter} next iteration")
-            counter += 1
-	
         done = False
         while not done:
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
             done = all(done.values())
             env.render()
-            time.sleep(.1)
-            done = False
 
         scene, _ = scenario.generate()
     env.close()
@@ -246,7 +136,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--OV_traj_num', type=int, default=256)
+    parser.add_argument('--OV_traj_num', type=int, default=64)
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)

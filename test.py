@@ -33,15 +33,17 @@ from helpers import get_carla_point_from_scene
 import signal
 from pprint import pprint
 import math
+from tqdm import tqdm
+from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "admiring_diffie"
-bridge_container_name = "sharp_roentgen"
+autoware_container_name = "pensive_curie"
+bridge_container_name = "pensive_hugle"
 
-autoware_terminal = "/dev/pts/4"
-bridge_terminal = "/dev/pts/5"
-default_terminal = "/dev/pts/6"
+autoware_terminal = "/dev/pts/14"
+bridge_terminal = "/dev/pts/15"
+default_terminal = "/dev/pts/20"
 
 
 """
@@ -97,7 +99,7 @@ def kill_process(container_name, pid):
     
 def change_control_mode(container_name):
     command = (
-        "cd /work/Valentin_dev/tumgeka_bridge/autoware/ && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/ && "
         "source install/setup.bash && "
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
@@ -106,7 +108,7 @@ def change_control_mode(container_name):
     
 def check_is_stopped(container_name):
     command = (
-        "cd /work/Valentin_dev/tumgeka_bridge/autoware/ && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/ && "
         "source install/setup.bash && "
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
@@ -115,11 +117,11 @@ def check_is_stopped(container_name):
     
 def run_autoware_simulation(container_name):
     command = (
-        "cd /work/Valentin_dev/tumgeka_bridge/autoware/ && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_new/autoware/ && "
         "source install/setup.bash && "
         "ros2 launch autoware_launch e2e_simulator.launch.xml "
         "vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit "
-        "map_path:=/work/Valentin_dev/tumgeka_bridge/Town05"
+        "map_path:=/work/Valentin_dev/tumgeka_bridge/Town10 launch_system:=false"
     )
     return run_docker_command(container_name, command, autoware_terminal)
     
@@ -131,6 +133,19 @@ def run_carla_aw_bridge(container_name):
         "port:=2000 passive:=True register_all_sensors:=False timeout:=180"
     )
     return run_docker_command(container_name, command, bridge_terminal)
+
+def compute_WD(gt, other):
+    gt_histogram, gt_bins = np.histogram(gt, bins=int(np.ceil(np.sqrt(len(gt)))))
+    gt_histogram = gt_histogram + .1
+    gt_histogram /= np.sum(gt_histogram)
+
+    other_histogram, _ = np.histogram(other, bins=gt_bins)
+    other_histogram = other_histogram + .1
+    other_histogram /= np.sum(other_histogram)
+
+    wd = wasserstein_distance(u_values=gt_bins[:-1], v_values=gt_bins[:-1],
+                                u_weights=gt_histogram, v_weights=other_histogram)
+    return wd
     
 
 def main(args):
@@ -179,37 +194,35 @@ def main(args):
             if agent != "ego_vehicle":
                 ctrl = agents[agent].run_step()
                 actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
-                #actions[agent] = np.array([.45, 0, 0])
+                #actions[agent] = np.array([.50, 0, 0])
         return actions
-
-    for e in range(NUM_EPISODES):
-        aw_process = run_autoware_simulation(autoware_container_name)
-        obs, info = env.reset(options={
+    
+    obs, info = env.reset(options={
             "scene": scene
         })
+    for e in range(NUM_EPISODES):
+        aw_process = run_autoware_simulation(autoware_container_name)
+        
+
         agents = get_agents(env)
         client = carla.Client(args.carla_host, args.carla_port)
+        
         
         done = False
         CarlaDataProvider.get_world().tick()
         
-        for i in range(100):
-            print(i)
+        print("\n starting up...")
+        for i in tqdm(range(100)):
             CarlaDataProvider.get_world().tick()
             time.sleep(.1)
         
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name)
         
         
-        
-         
-
-        counter = 0
-        while counter < 500:
+        print("\n waiting for autoware...")
+        for i in tqdm(range(500)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
         #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
         # Wait until the vehicle is stopped
         #motion_state_subscriber.wait_until_stopped()
@@ -221,26 +234,22 @@ def main(args):
         except KeyboardInterrupt:
             pass
         
-        counter = 0
-        while counter < 200:
+        print("\n watiting for autonomous mode....")
+        for i in tqdm(range(60)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
             
         control_change_process = change_control_mode(autoware_container_name)
         
-        counter = 0
-        while counter < 160:
+        print("\n starting autoware...")
+        for i in tqdm(range(100)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
         
         while not done:
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
-            time.sleep(.05)
+            time.sleep(.02)
             done = all(done.values())
             env.render()
             
@@ -256,6 +265,9 @@ def main(args):
             "scene": scene,
             "adversarial": True
         })
+
+        gt_yaw = info["kpis"]["adv_yaw"]
+        gt_acc = info["kpis"]["adv_acc"]
 
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
@@ -275,12 +287,10 @@ def main(args):
         
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name) 
 
-        counter = 0
-        while counter < 480:
+        print("waiting for autoware....")
+        for i in tqdm(range(560)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
         
         pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
         CarlaDataProvider.get_world().tick()
@@ -289,44 +299,54 @@ def main(args):
         except KeyboardInterrupt:
             pass
         
-        counter = 0
-        while counter < 200:
+        print("waiting for autonomous mode....")
+        for i in tqdm(range(60)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
             
         control_change_process = change_control_mode(autoware_container_name)
         
-        counter = 0
-        while counter < 100:
+        print("starting autoware....")
+        for i in tqdm(range(100)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-            print(counter)
-            counter += 1
 	
         done = False
         while not done:
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
+            if env.coll:
+                collision = True
+                break
             done = all(done.values())
             env.render()
-            time.sleep(.05)
+            time.sleep(.02)
 
         scene, _ = scenario.generate()
+        obs, info = env.reset(options={
+            "scene": scene
+        })
+
+        other_yaw = info["kpis"]["adv_yaw"]
+        other_acc = info["kpis"]["adv_acc"]
+        ttc = min(info["kpis"]["ttc"])
+
+        print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
+        print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
+        print(f"min ttc: {ttc}")
+        print(f"collision: {collision}")
         
-        if e != NUM_EPISODES:
-            print("----------------------")
-            print("restarting containers")
-        
-            run_docker_restart_command(bridge_container_name, default_terminal)
-            run_docker_restart_command(autoware_container_name, default_terminal)
+        print("----------------------")
+        print("restarting containers")
+    
+        run_docker_restart_command(bridge_container_name, default_terminal)
+        run_docker_restart_command(autoware_container_name, default_terminal)
     env.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--OV_traj_num', type=int, default=256)
+    parser.add_argument('--OV_traj_num', type=int, default=64)
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)

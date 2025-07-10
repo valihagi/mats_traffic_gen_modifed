@@ -1,0 +1,47 @@
+Version: 1.0.0
+Properties:
+-   Key: ExExt
+    Value:windows: .exe
+    Value:linux: ''
+-   Key: FAAS_SERVICES_DIR
+    Value:windows: ${CUMULUS_ROOT}
+    Value:linux: .
+-   Key: LOCAL_APP_DATA_DIR
+    Value:windows: ${LOCALAPPDATA}
+    Value:linux: /tmp/AVL
+-   Key: CUMULUS_PYTHON_PATH
+    Value:windows: '"${FAAS_SERVICES_DIR}/../../Python/python.exe"'
+    Value:linux: python3
+BindTo: 'localhost'
+Port: 9842
+JWTDuration : 120
+
+LogLevel: info
+TraceLevel: 0
+LogFilePolicy: timestamp
+LogServicesStdOut: false
+
+HealthCheckTimeout: 300 #seconds
+ShutdownTimeout: 300 #seconds
+
+Autostart: [active_doe]
+
+Services:
+
+# the active doe server
+-   Name: active_doe
+    ServicePrefix: active_doe/
+    FileName: ${CUMULUS_PYTHON_PATH}
+    Singleton: false
+    HealthCheck: services/is_alive
+    Settings:
+    -   Key: PYTHONPATH
+        Value: ${FAAS_SERVICES_DIR}/active_doe/.venv/lib/site-packages
+    #-   Key: port
+    #    Value: 8011
+    -   Key: cameo_root
+        Value: ${CUMULUS_ROOT}
+    -   Key: MFI_BUILDER
+        Value: ${CUMULUS_ROOT}/../../AVL.CAMEO.MFI.Models.ExternalBuild.exe
+    Arguments: ["${FAAS_SERVICES_DIR}/active_doe/main.py"]
+

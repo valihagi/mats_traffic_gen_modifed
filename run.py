@@ -118,7 +118,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--scenario', type=str, default="scenarios/base_scenarios/base.scenic")
     parser.add_argument('--towns', type=str, nargs='+', default=["Town05"])
-    parser.add_argument('--OV_traj_num', type=int, default=256)
+    parser.add_argument('--OV_traj_num', type=int, default=64)
     parser.add_argument('--AV_traj_num', type=int, default=1)
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)

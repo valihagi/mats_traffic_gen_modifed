@@ -1,0 +1,1102 @@
+[
+  {
+    "Responses": {
+      "min_ttc": 48.49654158955655
+    },
+    "Variations": {
+      "acceleration": 0.21744317236805435,
+      "max_speed": 25.861823799474223,
+      "start_pos_offset": -2.011926358565759,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 19.425999657212774
+    },
+    "Variations": {
+      "acceleration": 1.4350713654547245,
+      "max_speed": 21.31172811412956,
+      "start_pos_offset": 4.867963232759637,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.1850311494155635,
+      "max_speed": 21.11528189594844,
+      "start_pos_offset": -1.8230320981206187,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 30.451586591623446
+    },
+    "Variations": {
+      "acceleration": 0.027853414994172297,
+      "max_speed": 0.1208439984664938,
+      "start_pos_offset": -4.96695368714616,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -2.8583976493974834
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 22.474996200967176,
+      "start_pos_offset": -1.854703216619166,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 23.76141136953107
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 6.863910814146335,
+      "start_pos_offset": -5.0433657227060795,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 55.48666205818507
+    },
+    "Variations": {
+      "acceleration": 0.22668511447314896,
+      "max_speed": 24.7348955371946,
+      "start_pos_offset": 5.904659440803572,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 87.77319240723439
+    },
+    "Variations": {
+      "acceleration": 0.21267117183166379,
+      "max_speed": 22.63954914260851,
+      "start_pos_offset": 4.8126733658419205,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 51.91576368769657
+    },
+    "Variations": {
+      "acceleration": 0.2371577887324106,
+      "max_speed": 23.261910658104203,
+      "start_pos_offset": -3.8262230029975446,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 48.74740739976673
+    },
+    "Variations": {
+      "acceleration": 0.248312306672756,
+      "max_speed": 23.184308661442195,
+      "start_pos_offset": -3.3548703833960003,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 61.639194846158325
+    },
+    "Variations": {
+      "acceleration": 0.2731552743383513,
+      "max_speed": 24.24028735694221,
+      "start_pos_offset": 0.07776726678200419,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 15.103745629095329
+    },
+    "Variations": {
+      "acceleration": 0.016213238344329372,
+      "max_speed": 22.444187511900513,
+      "start_pos_offset": -3.9330241103308246,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -15.457656882173605
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 21.322319398829617,
+      "start_pos_offset": -0.028003686209199685,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 48.49654158955655
+    },
+    "Variations": {
+      "acceleration": 0.21487195843007237,
+      "max_speed": 26.974301489365516,
+      "start_pos_offset": -3.1047236891002736,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -1.1275458657347066
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 3.5490469777674134,
+      "start_pos_offset": -5.044374060606121,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -24.028984696795213
+    },
+    "Variations": {
+      "acceleration": 0.06451279387535673,
+      "max_speed": 2.6794128021114165,
+      "start_pos_offset": -5.082947714076761,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 16.806986994667565
+    },
+    "Variations": {
+      "acceleration": 0.1930150144064266,
+      "max_speed": 22.19947166205135,
+      "start_pos_offset": -5.263236408847161,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 26.817304334645033
+    },
+    "Variations": {
+      "acceleration": 0.011673965667537506,
+      "max_speed": 22.44993248931691,
+      "start_pos_offset": -2.956909947269547,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 20.157068802221158
+    },
+    "Variations": {
+      "acceleration": 0.1797830257935772,
+      "max_speed": 22.443003202438813,
+      "start_pos_offset": -4.464679173496464,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 22.680392410024183
+    },
+    "Variations": {
+      "acceleration": 0.43727646423976607,
+      "max_speed": 24.67673323405683,
+      "start_pos_offset": 5.983490300369402,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 18.626888775543456
+    },
+    "Variations": {
+      "acceleration": 0.2667941456631135,
+      "max_speed": 22.567710865728273,
+      "start_pos_offset": 5.737449305780311,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.20262831250860622,
+      "max_speed": 21.307628107736026,
+      "start_pos_offset": -0.8901726745395084,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.2005235314802703,
+      "max_speed": 21.424483654181277,
+      "start_pos_offset": -2.7112347077779813,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 10.15359216162982
+    },
+    "Variations": {
+      "acceleration": 0.18557894726588783,
+      "max_speed": 6.957418799987177,
+      "start_pos_offset": -4.976247684153016,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 61.38819047636008
+    },
+    "Variations": {
+      "acceleration": 0.870012668656601,
+      "max_speed": 22.147622379658163,
+      "start_pos_offset": 4.932211552083551,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 30.28522038551308
+    },
+    "Variations": {
+      "acceleration": 0.21647474788089108,
+      "max_speed": 28.702995571043928,
+      "start_pos_offset": -2.5739646406748173,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 57.065953935008224
+    },
+    "Variations": {
+      "acceleration": 0.20495607821655681,
+      "max_speed": 0.0,
+      "start_pos_offset": -5.093613187443352,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -5.358057945059833
+    },
+    "Variations": {
+      "acceleration": 0.08069328124864125,
+      "max_speed": 21.430805820113445,
+      "start_pos_offset": -3.8395896970908794,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -10.156981011744833
+    },
+    "Variations": {
+      "acceleration": 0.3079786131619935,
+      "max_speed": 21.563677463642343,
+      "start_pos_offset": 0.011483829843275117,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 25.422531441259924
+    },
+    "Variations": {
+      "acceleration": 0.2383624525175143,
+      "max_speed": 23.178448987789913,
+      "start_pos_offset": -4.605565115085625,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -9.543943093071073
+    },
+    "Variations": {
+      "acceleration": 0.07948725601520074,
+      "max_speed": 5.193447727225979,
+      "start_pos_offset": -5.0816406879759946,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -2.8583976493974834
+    },
+    "Variations": {
+      "acceleration": 0.009583302963858434,
+      "max_speed": 22.504281469085896,
+      "start_pos_offset": -0.9583658341920422,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 46.98578871864286
+    },
+    "Variations": {
+      "acceleration": 0.13767665672635082,
+      "max_speed": 22.192168333381744,
+      "start_pos_offset": 0.054068952142160676,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 73.21166912233787
+    },
+    "Variations": {
+      "acceleration": 0.20620920039748158,
+      "max_speed": 26.496850739843715,
+      "start_pos_offset": -1.317496909940445,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 86.27839772148093
+    },
+    "Variations": {
+      "acceleration": 0.4811827666836746,
+      "max_speed": 22.41090791293888,
+      "start_pos_offset": 4.798977260895018,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 19.425999657212774
+    },
+    "Variations": {
+      "acceleration": 1.2963007955272767,
+      "max_speed": 22.080322807407725,
+      "start_pos_offset": 4.8771634808529605,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 8.176512111941243
+    },
+    "Variations": {
+      "acceleration": 0.016024492793331516,
+      "max_speed": 22.805500532791672,
+      "start_pos_offset": 5.676587517538016,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 452.35358408365045
+    },
+    "Variations": {
+      "acceleration": 0.2293517779369989,
+      "max_speed": 19.92792231296649,
+      "start_pos_offset": 0.04525926796788049,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 41.83022341864327
+    },
+    "Variations": {
+      "acceleration": 0.22203822644203985,
+      "max_speed": 25.63292770810057,
+      "start_pos_offset": -2.757148233338528,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 44.059405799524704
+    },
+    "Variations": {
+      "acceleration": 0.16812945024645065,
+      "max_speed": 1.4910913047291086,
+      "start_pos_offset": -5.006520077710263,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 166.35692551069877
+    },
+    "Variations": {
+      "acceleration": 0.2212152128104264,
+      "max_speed": 24.409677432162194,
+      "start_pos_offset": -4.237865984651054,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 28.1974518260828
+    },
+    "Variations": {
+      "acceleration": 0.27181969581785026,
+      "max_speed": 24.01727626871367,
+      "start_pos_offset": 4.8227359950938276,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.11492587741480592,
+      "max_speed": 20.80496235703554,
+      "start_pos_offset": -0.23605804265924668,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 60.33157185350731
+    },
+    "Variations": {
+      "acceleration": 0.19572635635214164,
+      "max_speed": 20.25549349007502,
+      "start_pos_offset": -2.325917526675884,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 20.157068802221158
+    },
+    "Variations": {
+      "acceleration": 0.056024477440920005,
+      "max_speed": 22.178709848046243,
+      "start_pos_offset": -4.516122829530172,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 48.118436449114846
+    },
+    "Variations": {
+      "acceleration": 0.2017434677192823,
+      "max_speed": 24.666855163035507,
+      "start_pos_offset": -1.6502395065750637,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 15.103745629095329
+    },
+    "Variations": {
+      "acceleration": 0.18109935043611658,
+      "max_speed": 22.28756652780347,
+      "start_pos_offset": -3.864064096268525,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 63.89117314008963
+    },
+    "Variations": {
+      "acceleration": 0.18599600611150593,
+      "max_speed": 20.27726690497796,
+      "start_pos_offset": -1.3272616781652626,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 4.500706962506729
+    },
+    "Variations": {
+      "acceleration": 0.19738705028011436,
+      "max_speed": 21.525467477515537,
+      "start_pos_offset": -3.503288495600129,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -11.211654917294283
+    },
+    "Variations": {
+      "acceleration": 0.20863325502857177,
+      "max_speed": 23.338203823584987,
+      "start_pos_offset": -0.07237791072131383,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 41.83022341864327
+    },
+    "Variations": {
+      "acceleration": 0.22585819107541968,
+      "max_speed": 27.275291690829782,
+      "start_pos_offset": -2.535159729447648,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 70.9474345718315
+    },
+    "Variations": {
+      "acceleration": 0.24085894819960102,
+      "max_speed": 22.691055834093085,
+      "start_pos_offset": 0.10237525538872738,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -0.6239944501392689
+    },
+    "Variations": {
+      "acceleration": 0.20793406480049553,
+      "max_speed": 28.57926333377747,
+      "start_pos_offset": -3.1309462535653836,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.007186896608536485,
+      "max_speed": 21.359264771487332,
+      "start_pos_offset": -3.4108804999731297,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 24.022637831538752
+    },
+    "Variations": {
+      "acceleration": 0.25445568172879,
+      "max_speed": 23.92945335068464,
+      "start_pos_offset": 5.497500945970769,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 18.790078919892725
+    },
+    "Variations": {
+      "acceleration": 0.23314536302913938,
+      "max_speed": 21.63606610460858,
+      "start_pos_offset": -0.08443276664024424,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 3.6286042210677993
+    },
+    "Variations": {
+      "acceleration": 0.009751374012582206,
+      "max_speed": 20.435123856451103,
+      "start_pos_offset": -3.837761519772397,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 4.500706962506729
+    },
+    "Variations": {
+      "acceleration": 0.11421754346933982,
+      "max_speed": 20.67189410300435,
+      "start_pos_offset": -3.4207502985355065,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -1.1275458657347066
+    },
+    "Variations": {
+      "acceleration": 0.10214253428149515,
+      "max_speed": 3.851346075907351,
+      "start_pos_offset": -5.057620145643829,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -1.1275458657347066
+    },
+    "Variations": {
+      "acceleration": 0.1806844616346115,
+      "max_speed": 5.642225597438926,
+      "start_pos_offset": -5.050059956709724,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 44.059405799524704
+    },
+    "Variations": {
+      "acceleration": 0.05654001883628487,
+      "max_speed": 1.3133098867616992,
+      "start_pos_offset": -5.045569698428353,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 23.76141136953107
+    },
+    "Variations": {
+      "acceleration": 0.09780521079550115,
+      "max_speed": 6.393893141560431,
+      "start_pos_offset": -5.077474354021158,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 5.794235423201874
+    },
+    "Variations": {
+      "acceleration": 0.30745591539076744,
+      "max_speed": 22.615293102182534,
+      "start_pos_offset": 4.984120459144096,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -11.485112382409497
+    },
+    "Variations": {
+      "acceleration": 0.22639626228824333,
+      "max_speed": 22.47526675729599,
+      "start_pos_offset": -4.221310029986963,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.19944209663115206,
+      "max_speed": 21.514716103995145,
+      "start_pos_offset": -1.3600900418264112,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 0.27922915302195306
+    },
+    "Variations": {
+      "acceleration": 0.16338160910356236,
+      "max_speed": 2.7558293060555186,
+      "start_pos_offset": -5.063474044987324,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -5.358057945059833
+    },
+    "Variations": {
+      "acceleration": 0.1774443993716096,
+      "max_speed": 20.742974385586848,
+      "start_pos_offset": -3.84817080216247,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 8.673642116788498
+    },
+    "Variations": {
+      "acceleration": 1.8871539000810753,
+      "max_speed": 19.99095493599093,
+      "start_pos_offset": 4.7846865171622355,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.18683182035771437,
+      "max_speed": 20.316885421330056,
+      "start_pos_offset": -0.6184687371590769,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.18850071105404434,
+      "max_speed": 20.43326795154235,
+      "start_pos_offset": -3.0373756325288594,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -41.17774135242347
+    },
+    "Variations": {
+      "acceleration": 0.20787654011419,
+      "max_speed": 21.014285756551544,
+      "start_pos_offset": -5.052669190745723,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 51.46235608593081
+    },
+    "Variations": {
+      "acceleration": 0.25280274630942867,
+      "max_speed": 22.912174074464314,
+      "start_pos_offset": -5.054906838124541,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 20.862275203718223
+    },
+    "Variations": {
+      "acceleration": 0.12047685537124736,
+      "max_speed": 22.378100267459303,
+      "start_pos_offset": -4.9943981442014636,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -1.1275458657347066
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 4.684187091324067,
+      "start_pos_offset": -5.051797947209302,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 35.643008572188336
+    },
+    "Variations": {
+      "acceleration": 0.12560814936317605,
+      "max_speed": 0.516959539212061,
+      "start_pos_offset": -5.102715380207069,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 23.76141136953107
+    },
+    "Variations": {
+      "acceleration": 0.004555344254542591,
+      "max_speed": 5.75413812129526,
+      "start_pos_offset": -4.999392849573344,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -27.845896245123907
+    },
+    "Variations": {
+      "acceleration": 0.20790861745795503,
+      "max_speed": 21.478986815654743,
+      "start_pos_offset": -2.2089157439719243,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 48.49654158955655
+    },
+    "Variations": {
+      "acceleration": 0.21379044545572973,
+      "max_speed": 26.91667049730162,
+      "start_pos_offset": -1.7035157945292223,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 37.96932364679573
+    },
+    "Variations": {
+      "acceleration": 1.4950960227543855,
+      "max_speed": 21.998829947147513,
+      "start_pos_offset": 4.73425348034989,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -10.156981011744833
+    },
+    "Variations": {
+      "acceleration": 0.3077018593940724,
+      "max_speed": 20.48322382932133,
+      "start_pos_offset": 0.019578593262929544,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 61.37274300714888
+    },
+    "Variations": {
+      "acceleration": 1.3820375560087115,
+      "max_speed": 22.153600880914162,
+      "start_pos_offset": 4.922813109044974,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 26.817304334645033
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 22.42920830934701,
+      "start_pos_offset": -1.3694705652871582,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 15.103745629095329
+    },
+    "Variations": {
+      "acceleration": 0.1086068915859699,
+      "max_speed": 22.28202111139497,
+      "start_pos_offset": -4.200084909916201,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 3.6286042210677993
+    },
+    "Variations": {
+      "acceleration": 0.09694805083057759,
+      "max_speed": 20.40560144406887,
+      "start_pos_offset": -3.801452703308388,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 41.83022341864327
+    },
+    "Variations": {
+      "acceleration": 0.22104118590084038,
+      "max_speed": 26.30000433888614,
+      "start_pos_offset": -2.4444580337458235,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -18.531779077673615
+    },
+    "Variations": {
+      "acceleration": 0.22958655243045878,
+      "max_speed": 24.194538076110053,
+      "start_pos_offset": -4.626870131643409,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.18466966245025207,
+      "max_speed": 21.523978425238592,
+      "start_pos_offset": -0.40610580502799376,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.02369592268576612,
+      "max_speed": 20.558272664168086,
+      "start_pos_offset": -0.2559167754862228,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 6.355500760489879
+    },
+    "Variations": {
+      "acceleration": 0.18385149173721477,
+      "max_speed": 21.436448605034016,
+      "start_pos_offset": -3.113271225440226,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 26.817304334645033
+    },
+    "Variations": {
+      "acceleration": 0.01564735370265784,
+      "max_speed": 22.339147591727397,
+      "start_pos_offset": -2.5660206049557055,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 42.92910152156894
+    },
+    "Variations": {
+      "acceleration": 0.244339343821812,
+      "max_speed": 23.445788458167087,
+      "start_pos_offset": -4.22889844163752,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 46.366867429904836
+    },
+    "Variations": {
+      "acceleration": 0.2116815474951518,
+      "max_speed": 25.848533169672116,
+      "start_pos_offset": -1.608901070568745,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 3.019730713318393
+    },
+    "Variations": {
+      "acceleration": 0.0,
+      "max_speed": 22.270960251153948,
+      "start_pos_offset": 0.0589279306811914,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -1.1275458657347066
+    },
+    "Variations": {
+      "acceleration": 0.1476843332759768,
+      "max_speed": 4.674399675474901,
+      "start_pos_offset": -5.0517906692097165,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 165.6343211400069
+    },
+    "Variations": {
+      "acceleration": 0.23206133469082224,
+      "max_speed": 24.231890708683647,
+      "start_pos_offset": -3.8626786366862533,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 73.21166912233787
+    },
+    "Variations": {
+      "acceleration": 0.20482878971908366,
+      "max_speed": 27.882555073768508,
+      "start_pos_offset": -2.8760742715377683,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -23.50034250177605
+    },
+    "Variations": {
+      "acceleration": 0.07348618780796284,
+      "max_speed": 21.5580906217486,
+      "start_pos_offset": -0.1285519810656668,
+      "turn_idx": 1.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 19.425999657212774
+    },
+    "Variations": {
+      "acceleration": 1.3461657942046394,
+      "max_speed": 21.32648612501674,
+      "start_pos_offset": 4.88472003128874,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": -17.09598293971827
+    },
+    "Variations": {
+      "acceleration": 0.08715668366818238,
+      "max_speed": 22.080663075523944,
+      "start_pos_offset": -3.8492083696718824,
+      "turn_idx": 0.0
+    }
+  },
+  {
+    "Responses": {
+      "min_ttc": 31.893827366992586
+    },
+    "Variations": {
+      "acceleration": 0.3403137976288576,
+      "max_speed": 23.64348969708324,
+      "start_pos_offset": 4.9014637432848005,
+      "turn_idx": 0.0
+    }
+  }
+]
