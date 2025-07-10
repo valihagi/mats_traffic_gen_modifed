@@ -44,13 +44,13 @@ import subprocess
 
 progress_file = "/workspace/shared/progress.txt"
 
-autoware_container_name = "angry_dijkstra"
-bridge_container_name = "confident_heyrovsky"
+autoware_container_name = "relaxed_banach"
+bridge_container_name = "busy_swirles"
 carla_container_name = "stupefied_villani"
 
-autoware_terminal = "/dev/pts/2"
-bridge_terminal = "/dev/pts/3"
-default_terminal = "/dev/pts/4"
+autoware_terminal = "/dev/pts/3"
+bridge_terminal = "/dev/pts/4"
+default_terminal = "/dev/pts/8"
 
 
 """
@@ -59,6 +59,25 @@ inside the CARLA simulator. The visualization is done by adding a callback to th
 """
 
 NUM_EPISODES = 1000
+
+def get_candidates():
+    try:
+        with open("/workspace/shared/doe_messages/candidates.json", "r") as f:
+            return json.load(f)
+    except:
+        return None
+
+def write_kpi(data):
+    print(f"Writing {data}")
+    with open("/workspace/shared/doe_messages/kpi.json", "w") as f:
+        json.dump(data, f)
+
+def clear_candiates():
+    try:
+        with open("/workspace/shared/doe_messages/candidates.json", "w") as f:
+            json.dump([], f)
+    except:
+        return None
 
 
 def compute_WD(gt, other):
@@ -89,6 +108,7 @@ def get_all_vehicles(client):
     
 
 def main(args):
+    print("starting here")
     with open(progress_file, "w") as f:
         f.write(str(0))
         print(f"[Main] Progress written: {0}")
@@ -98,7 +118,7 @@ def main(args):
     random.seed(SEED)
     np.random.seed(SEED)
     strategy = args.strategy
-    test_xosc = "test"
+    test_xosc = "test_geidorf"
 
     env = mats_gym.openscenario_env(
         scenario_files=f"scenarios/open_scenario/{test_xosc}.xosc",
@@ -108,6 +128,8 @@ def main(args):
         render_mode="human",
         render_config=camera_pov(agent="ego_vehicle"),
     )
+    print("xosc here:")
+    print(test_xosc)
 
     env = AdversarialTrainingWrapper(
         env=env,
@@ -140,13 +162,13 @@ def main(args):
     )"""
     #other scenario
     
-    direction_vector = (-1, 0)
+    """direction_vector = (-1, 0)
     angle_rad = math.atan2(direction_vector[1], direction_vector[0])
     angle_deg = math.degrees(angle_rad)
     target_point = carla.Transform(
         carla.Location(82.5, -70, 0.0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
-    )
+    )"""
 
     #test2.xosc
     """direction_vector = (0, -1)
@@ -156,6 +178,34 @@ def main(args):
         carla.Location(43.5, -40, 0),  # Assuming Z = 0 for ground level
         carla.Rotation(yaw=angle_deg)
     )"""
+
+    #test6.xosc
+    """direction_vector = (1, 0)
+    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+    angle_deg = math.degrees(angle_rad)
+    target_point = carla.Transform(
+        carla.Location(-72.5, 68.5, 0),  # Assuming Z = 0 for ground level
+        carla.Rotation(yaw=angle_deg)
+    )"""
+
+    """#test7.xosc OLD
+    direction_vector = (0, -1)
+    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+    angle_deg = math.degrees(angle_rad)
+    target_point = carla.Transform(
+        carla.Location(-104.5, -73, 0),  # Assuming Z = 0 for ground level
+        carla.Rotation(yaw=angle_deg)
+    )"""
+
+    #test7.xosc new
+    direction_vector = (1, 0)
+    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+    angle_deg = math.degrees(angle_rad)
+    target_point = carla.Transform(
+        carla.Location(-90, -16.5, 0),  # Assuming Z = 0 for ground level
+        carla.Rotation(yaw=angle_deg)
+    )
+
     autoware_target_point = None #"""{
             #'x': 71.0,
             #'y': -13.5,
@@ -185,133 +235,128 @@ def main(args):
             ]
             client.insert_measurements(measurements=measurements)"""
 
-        with active_doe_client(hostname="localhost", port=8011, use_sg=False) as doe_client:
-            session=doe_client.initialize(setup=setup)
-            if session is None:
-                raise Exception("could not initialize session")
-            
-            json_file_number = 1
+        
+        json_file_number = 7
 
-            logs = "/workspace/doe_logs/"
+        logs = "/workspace/doe_logs/"
 
-            json_file = f"{logs}meas{json_file_number}.json"
-            samples_file = f"{logs}samples{json_file_number}.json"
+        json_file = f"{logs}meas{json_file_number}.json"
+        samples_file = f"{logs}samples{json_file_number}.json"
+
+        while True:
+            while True:
+                candidates = get_candidates()
+                if candidates is None or candidates == []:
+                    print("wait for next input")
+                    time.sleep(5)
+                    continue
+                else:
+                    break
+            if candidates == [1]:
+                print("received eng signal for doe")
+                break
+            print(candidates)
+            measurements = []
+            measurements_no_index = []
+
+            for candidate in candidates:
+                ran_counter += 1
+                aw_started = False
+                while not aw_started:
+                    traj = None
+                    ##unpack candiates and insert them into env.scenario
+                    variations = candidate["Variations"]
+                    print("parameters are: ")
+                    print(variations)
+                    obs, info = env.reset(options={
+                        })
+                    
+                    CarlaDataProvider.get_world().tick()
+                    
+                    #times = generate_timestamps(100, 80, 1, )
+                    """times = generate_even_timestamps(80, 18)
+                    adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
+
+                    adv = env.actors["adversary"]
+                    adv_loc = adv.get_location()
+                    random_offset = variations["start_pos_offset"]
+                    adv_loc.x = adv_loc.x - random_offset
+                    print(random_offset)
+                    new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
+                    adv.set_transform(new_transform)
+                    
+                    adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
+                    parameters.append(random_offset)
+
+                    print(f"STARTING scenario... counter: {ran_counter}")
+                    try:
+                        # Your main code
+                        print("RUNNING scenario...")
+
+                        aw_started = run_simulation(autoware_container_name=autoware_container_name,
+                        bridge_container_name=bridge_container_name,
+                        carla_container_name=carla_container_name,
+                        default_terminal=default_terminal,
+                        autoware_terminal=autoware_terminal,
+                        bridge_terminal=bridge_terminal,
+                        env=env,
+                        args=args,
+                        scene=None,
+                        iteration=ran_counter,
+                        target_point=target_point,
+                        strategy=strategy,
+                        adv_path=adv_traj,
+                        pose_publisher=pose_publisher,
+                        autoware_target_point= autoware_target_point,
+                        parameters=parameters,
+                        test_xosc=test_xosc)
+                        print(f"AW started: {aw_started}")
+                    
+                    except Exception as e:
+                        print(f"EXCEPTION: {e}")
+                    finally:
+                        print("SCRIPT EXITED.")
+                
+                #get KPIS
+                kpis = env.get_min_ttc_as_dict()
+                measurements.append(dict(
+                    Index=candidate['Index'],
+                    Variations=candidate['Variations'],
+                    Responses=kpis)
+                )
+                measurements_no_index.append(dict(
+                    Variations=candidate['Variations'],
+                    Responses=kpis)
+                )
+                print("-------------measurements below---------------------")
+                print(type(measurements))
+                print(measurements)
+                print("-------------measurements above---------------------")
+
             if os.path.exists(json_file):
                 with open(json_file, "r") as f:
-                    data = json.load(f)
-                doe_client.insert_measurements(measurements=data) 
-            while True:
+                    try:
+                        existing_data = json.load(f)
+                    except json.JSONDecodeError:
+                        existing_data = []
+            else:
+                existing_data = []
 
-                candidates=doe_client.get_candidates(size=1, latest_models_required=True)
-                print(candidates)
-                measurements = []
-                measurements_no_index = []
+            # Append and save back
+            existing_data.extend(measurements_no_index)  # assumes new_data is a list
+            with open(json_file, "w") as f:
+                json.dump(existing_data, f, indent=2)
+            
+            write_kpi(measurements)
+            clear_candiates()
 
-                for candidate in candidates:
-                    ran_counter += 1
-                    aw_started = False
-                    while not aw_started:
-                        traj = None
-                        ##unpack candiates and insert them into env.scenario
-                        variations = candidate["Variations"]
-                        print("parameters are: ")
-                        print(variations)
-                        obs, info = env.reset(options={
-                            })
-                        
-                        CarlaDataProvider.get_world().tick()
-                        
-                        #times = generate_timestamps(100, 80, 1, )
-                        """times = generate_even_timestamps(80, 18)
-                        adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
-
-                        adv = env.actors["adversary"]
-                        adv_loc = adv.get_location()
-                        random_offset = variations["start_pos_offset"]
-                        adv_loc.x = adv_loc.x - random_offset
-                        print(random_offset)
-                        new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
-                        adv.set_transform(new_transform)
-                        
-                        adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
-                        parameters.append(random_offset)
-
-                        print(f"STARTING scenario... counter: {ran_counter}")
-                        try:
-                            # Your main code
-                            print("RUNNING scenario...")
-
-                            aw_started = run_simulation(autoware_container_name=autoware_container_name,
-                            bridge_container_name=bridge_container_name,
-                            carla_container_name=carla_container_name,
-                            default_terminal=default_terminal,
-                            autoware_terminal=autoware_terminal,
-                            bridge_terminal=bridge_terminal,
-                            env=env,
-                            args=args,
-                            scene=None,
-                            iteration=ran_counter,
-                            target_point=target_point,
-                            strategy=strategy,
-                            adv_path=adv_traj,
-                            pose_publisher=pose_publisher,
-                            autoware_target_point= autoware_target_point,
-                            parameters=parameters,
-                            test_xosc=test_xosc)
-                            print(f"AW started: {aw_started}")
-                        
-                        except Exception as e:
-                            print(f"EXCEPTION: {e}")
-                        finally:
-                            print("SCRIPT EXITED.")
-                    
-                    #get KPIS
-                    kpis = env.get_min_ttc_as_dict()
-                    measurements.append(dict(
-                        Index=candidate['Index'],
-                        Variations=candidate['Variations'],
-                        Responses=kpis)
-                    )
-                    measurements_no_index.append(dict(
-                        Variations=candidate['Variations'],
-                        Responses=kpis)
-                    )
-                    print("-------------measurements below---------------------")
-                    print(type(measurements))
-                    print(measurements)
-                    print("-------------measurements above---------------------")
-
-                if os.path.exists(json_file):
-                    with open(json_file, "r") as f:
-                        try:
-                            existing_data = json.load(f)
-                        except json.JSONDecodeError:
-                            existing_data = []
-                else:
-                    existing_data = []
-
-                # Append and save back
-                existing_data.extend(measurements_no_index)  # assumes new_data is a list
-                with open(json_file, "w") as f:
-                    json.dump(existing_data, f, indent=2)
-                
-                doe_client.insert_measurements(measurements=measurements)
-
-                if candidates is not None and any([c['Panel']['Algorithm']['StopRecommended'] for c in candidates]):
-                    print(f"Model building finished, samples can be found in {samples_file}.")
-                    samples = doe_client.get_samples(size=30)
-                    with open(samples_file, "w") as f:
-                        json.dump(samples, f, indent=2)
-                    results_file=os.path.join(logs, f'test_result_doe.csv')
-                    doe_client.write_result(file_path=results_file)
-                    break
-            print("exiting DoE")
-            return
+        print("exiting DoE")
+        return
         
     if strategy == "doe_finished":
         print("USING Active DoE finished samples")
             
-        json_file_number = 1
+        json_file_number = 7
 
         json_file = f"/workspace/doe_logs/meas{json_file_number}.json"
         samples_file = f"/workspace/doe_logs/samples{json_file_number}.json"
@@ -319,60 +364,67 @@ def main(args):
             with open(samples_file, "r") as f:
                 data = json.load(f)
 
-        for candidate in data:
+        data.sort(key=lambda candidate: candidate["Responses"]["min_ttc"])
+
+        for i in range(25,30): 
+            candidate = data[i]
+            print(candidate["Responses"]["min_ttc"])
             ran_counter += 1
-            traj = None
-            ##unpack candiates and insert them into env.scenario
-            variations = candidate["Variations"]
-            print("parameters are: ")
-            print(variations)
-            obs, info = env.reset(options={
-                })
-            
-            CarlaDataProvider.get_world().tick()
-            
-            #times = generate_timestamps(100, 80, 1, )
-            """times = generate_even_timestamps(80, 18)
-            adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
+            aw_started = False
+            while not aw_started:
+                traj = None
+                ##unpack candiates and insert them into env.scenario
+                variations = candidate["Variations"]
+                print("parameters are: ")
+                print(variations)
+                obs, info = env.reset(options={
+                    })
+                
+                CarlaDataProvider.get_world().tick()
+                
+                #times = generate_timestamps(100, 80, 1, )
+                """times = generate_even_timestamps(80, 18)
+                adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
 
-            adv = env.actors["adversary"]
-            adv_loc = adv.get_location()
-            random_offset = variations["start_pos_offset"]
-            adv_loc.x = adv_loc.x - random_offset
-            print(random_offset)
-            new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
-            adv.set_transform(new_transform)
-            
-            adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
-            parameters.append(random_offset)
+                adv = env.actors["adversary"]
+                adv_loc = adv.get_location()
+                random_offset = variations["start_pos_offset"]
+                adv_loc.x = adv_loc.x - random_offset
+                print(random_offset)
+                new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
+                adv.set_transform(new_transform)
+                
+                adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, variations)
+                parameters.append(random_offset)
 
-            print(f"STARTING scenario... counter: {ran_counter}")
-            try:
-                # Your main code
-                print("RUNNING scenario...")
+                print(f"STARTING scenario... counter: {ran_counter}")
+                try:
+                    # Your main code
+                    print("RUNNING scenario...")
 
-                run_simulation(autoware_container_name=autoware_container_name,
-                bridge_container_name=bridge_container_name,
-                carla_container_name=carla_container_name,
-                default_terminal=default_terminal,
-                autoware_terminal=autoware_terminal,
-                bridge_terminal=bridge_terminal,
-                env=env,
-                args=args,
-                scene=None,
-                iteration=ran_counter,
-                target_point=target_point,
-                strategy=strategy,
-                adv_path=adv_traj,
-                pose_publisher=pose_publisher,
-                autoware_target_point= autoware_target_point,
-                parameters=parameters,
-                test_xosc=test_xosc)
-            
-            except Exception as e:
-                print(f"EXCEPTION: {e}")
-            finally:
-                print("SCRIPT EXITED.")
+                    aw_started = run_simulation(autoware_container_name=autoware_container_name,
+                    bridge_container_name=bridge_container_name,
+                    carla_container_name=carla_container_name,
+                    default_terminal=default_terminal,
+                    autoware_terminal=autoware_terminal,
+                    bridge_terminal=bridge_terminal,
+                    env=env,
+                    args=args,
+                    scene=None,
+                    iteration=ran_counter,
+                    target_point=target_point,
+                    strategy=strategy,
+                    adv_path=adv_traj,
+                    pose_publisher=pose_publisher,
+                    autoware_target_point= autoware_target_point,
+                    parameters=parameters,
+                    test_xosc=test_xosc)
+                    print(f"AW started: {aw_started}")
+                
+                except Exception as e:
+                    print(f"EXCEPTION: {e}")
+                finally:
+                    print("SCRIPT EXITED.")
 
         print("finished running all samples, exiting now...")
 
@@ -404,12 +456,12 @@ def main(args):
             adv = env.actors["adversary"]
             adv_loc = adv.get_location()
             random_offset = random.uniform(-5, 5)
-            adv_loc.x = adv_loc.x - random_offset
+            adv_loc.x = adv_loc.x - 0#random_offset #+1.9
             print(random_offset)
             new_transform = carla.Transform(location=adv_loc, rotation=adv.get_transform().rotation)
             adv.set_transform(new_transform)
             
-            adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network)
+            adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, test_xosc=test_xosc)
             parameters.append(random_offset)
 
             """env = mats_gym.openscenario_env(
@@ -440,9 +492,15 @@ def main(args):
                 save_log_file(env, info, parameters, iteration_counter, in_odd=False)
                 continue"""
             ran_counter += 1
-            
         elif strategy == "cat":
             print("USING CAT")
+            obs, info = env.reset(options={
+            })
+            adv_traj = None
+            parameters = None
+
+        elif strategy == "cat_no_odd":
+            print("USING CAT_no_odd")
             obs, info = env.reset(options={
             })
             adv_traj = None
@@ -510,6 +568,10 @@ def main(args):
                         autoware_target_point= autoware_target_point,
                         parameters=parameters,
                         test_xosc=test_xosc)
+            """kpis = env.get_min_ttc_as_dict()
+            print(kpis)
+            time.sleep(100)"""
+            
         except Exception as e:
             print(f"EXCEPTION: {e}")
         finally:
@@ -526,6 +588,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="doe")
+    parser.add_argument('--strategy', type=str, default="cat_iterative")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)

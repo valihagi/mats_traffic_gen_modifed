@@ -12,10 +12,10 @@ with open("active_doe_module/setup_xosc.json", "r") as fp:
         session=doe_client.initialize(setup=setup)
         if session is None:
             raise Exception("could not initialize session")
-
+        counter = 0
         #client.insert_measurements(measurements=measurements) if we want a kickstarting measurement
         while True:
-
+            counter += .1
             candidates=doe_client.get_candidates(size=1, latest_models_required=True)
             print(candidates)
             measurements = []
@@ -26,7 +26,7 @@ with open("active_doe_module/setup_xosc.json", "r") as fp:
                 parameters = candidate["Variations"]
                 
                 #get KPIS
-                kpis = {"min_ttc": 10}
+                kpis = {"min_ttc": counter}
                 measurements.append(dict(
                     Index=candidate['Index'],
                     Variations=candidate['Variations'],

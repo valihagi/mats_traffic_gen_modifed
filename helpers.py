@@ -286,7 +286,7 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
         list of list of (x, y): Each trajectory is a list of (x, y) tuples.
     """
     min_distance = 30
-    max_distance = 100
+    max_distance = 58
     car_point = Point(start_position)
 
     all_trajectories = []
@@ -393,19 +393,55 @@ def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
 
     return np.stack((resampled_x, resampled_y), axis=1)
 
-def create_random_traj(ego_loc, network, parameters=None):
+def shift_trajectory_laterally(traj, offset_factor):
+    """
+    Shift a 2D trajectory laterally based on offset_factor [-1, 1].
+    
+    Parameters:
+        traj: (N, 2) array of [x, y] positions
+        offset_factor: float in [-1, 1]
+        max_offset: maximum shift in meters
+
+    Returns:
+        shifted_traj: (N, 2) trajectory with lateral shift applied
+    """
+
+    # Calculate direction vectors between points
+    directions = np.diff(traj, axis=0)
+    directions = np.vstack([directions, directions[-1]])  # same length as traj
+
+    # Normalize directions
+    norms = np.linalg.norm(directions, axis=1, keepdims=True)
+    directions = directions / np.clip(norms, 1e-6, None)
+
+    # Get perpendicular (normal) vectors: [dx, dy] ? [-dy, dx]
+    normals = np.stack([-directions[:,1], directions[:,0]], axis=1)
+
+    shifted_traj = traj + normals * offset_factor
+
+    return shifted_traj
+
+def create_random_traj(ego_loc, network, parameters=None, test_xosc=None):
     print(f"ego_loc is {ego_loc} here.")
     trajs = generate_trajectories_from_position(ego_loc, 0, network)
+    """if test_xosc == "test7":
+        trajs = trajs[1:]"""
+    for traj in trajs:
+        print("-------------------")
+        print(traj)
     if parameters is not None:
-        print(f"we have {len(trajs)} possible trajs from this start")
+        print(f"we have {len(trajs)} possible trajs from this start (doe)")
         idx = parameters["turn_idx"]
+        print(f"idx is {idx}")
         random_max_speed = parameters["max_speed"]
         random_acc = parameters["acceleration"]
+        lateral_offset = parameters["lateral_offset"]
     else:
-        print(f"we have {len(trajs)} possible trajs from this start")
-        idx = random.randint(0, len(trajs) - 1)
-        random_max_speed = random.uniform(2.5, 15)
-        random_acc = random.uniform(.4, 1.5)
+        print(f"we have {len(trajs)} possible trajs from this start (random)")
+        idx = random.randint(0, len(trajs) - 1) #0
+        random_max_speed = random.uniform(2.5, 15) #15
+        random_acc = random.uniform(.2, 2) #.35
+        lateral_offset = random.uniform(-1.1, 1.1) #1.1
     """for traj in trajs:
         print(traj[0])
         print(traj[-1])
@@ -413,14 +449,16 @@ def create_random_traj(ego_loc, network, parameters=None):
     time.sleep(10000000)"""
 
     traj1 = resample_trajectory_to_equal_distance(trajs[int(idx)])
-    traj1 = traj1[:120]
+    traj1 = traj1[:160]
+
+    traj1 = shift_trajectory_laterally(traj1, lateral_offset)
     
     trajectory = []
     for i in range(len(traj1)):
         speed = min(random_max_speed, (i + 1) ** random_acc)
         point = traj1[i]
         trajectory.append([point[0], -point[1], speed])
-    return trajectory, [idx, random_acc, random_max_speed]
+    return trajectory, [idx, random_acc, random_max_speed, lateral_offset]
 
 def generate_timestamps(total_distance, num_points, acc, vmax):
     # Phase 1: Acceleration phase
@@ -541,11 +579,11 @@ def get_vehicle_data(vehicle, near_miss=False):
     acc_along_heading = np.dot(acc_vector, heading_vector)
 
     if near_miss:
-        length = bbox.extent.x * 2.8
-        width = bbox.extent.y * 2.8
+        length = bbox.extent.x * 2.6
+        width = bbox.extent.y * 2.6
     else:
-        length = bbox.extent.x * 2.0
-        width = bbox.extent.y * 2.0
+        length = bbox.extent.x * 1.95
+        width = bbox.extent.y * 1.95
 
     return {
         'x': location.x,

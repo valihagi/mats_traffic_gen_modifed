@@ -2,7 +2,7 @@
   "Settings": {
     "Algorithm": {
       "StopCriteriaMinIterations": 0,
-      "StopCriteriaMaxIterations": 800,
+      "StopCriteriaMaxIterations": 200,
       "StopCriteriaWindow": 5,
       "QualityThreshold": 0.5,
       "OptimizePCT": 0.2,
@@ -17,7 +17,7 @@
       }
     },
     "Modeling": {
-      "StopCriteriaMinQuality": 0.95,
+      "StopCriteriaMinQuality": 0.88,
       "StopCriteriaTolerance": 0.1,
       "ModelType": "activedoe",
       "Smoothing": 0.1,
@@ -60,17 +60,25 @@
     },
     {
       "HardMin": 0,
-      "Min": 0.4,
+      "Min": 0.2,
       "Max": 2,
       "HardMax": 2.5,
       "Level": null,
       "Name": "acceleration"
+    },
+    {
+      "HardMin": -1.1,
+      "Min": -1.1,
+      "Max": 1.1,
+      "HardMax": 1.1,
+      "Level": null,
+      "Name": "lateral_offset"
     }
   ],
   "Responses": [
     {
       "Name": "min_ttc",
-      "Max": 1.8,
+      "Max": 1.75,
       "Min": 0.0,
       "Optimization": 1,
       "ModelType": null

@@ -6,7 +6,7 @@ from simulation import run_simulation
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--host", metavar="HOSTNAME", default="localhost", help="hostname or ip address of the server")
-parser.add_argument("-p", "--port", type=int, default="9842",  help="server port")
+parser.add_argument("-p", "--port", type=int, default="8011",  help="server port")
 parser.add_argument("-q", "--quiet", default=False,  action='store_true', help="do not print infos to the console")
 #parser.add_argument("--sg", default=True, action=argparse.BooleanOptionalAction,  help="use service gateway for encryption")
 args = parser.parse_args()

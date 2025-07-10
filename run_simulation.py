@@ -48,6 +48,8 @@ class WaitingTime(IntEnum):
     MAXTIMESTEPS = 240
     COORDINATECHECK = 45.8
     COORDINATECHECK2 = 23.8
+    COORDINATECHECK6 = -38
+    COORDINATECHECK7 = 48.3
 
 progress_file = "/workspace/shared/progress.txt"
 
@@ -98,7 +100,7 @@ def kill_process(container_name, pid, default_terminal):
     
 def change_control_mode(container_name, default_terminal):
     command = (
-        "cd /home/u29r26/developing/autoware && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
@@ -106,7 +108,7 @@ def change_control_mode(container_name, default_terminal):
 
 def init_gnss_again(container_name, default_terminal):
     command = (
-        "cd /home/u29r26/developing/autoware && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
         "ros2 service call /api/localization/initialize autoware_adapi_v1_msgs/srv/InitializeLocalization {}"
     )
@@ -115,7 +117,7 @@ def init_gnss_again(container_name, default_terminal):
     
 def check_is_stopped(container_name, default_terminal):
     command = (
-        "cd /home/u29r26/developing/autoware && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
         "ros2 service call /api/operation_mode/change_to_autonomous autoware_adapi_v1_msgs/srv/ChangeOperationMode {}"
     )
@@ -124,11 +126,11 @@ def check_is_stopped(container_name, default_terminal):
     
 def run_autoware_simulation(container_name, autoware_terminal):
     command = (
-        "cd /home/u29r26/developing/autoware && "
+        "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
         "ros2 launch autoware_launch e2e_simulator.launch.xml "
         "vehicle_model:=carla_t2_vehicle sensor_model:=carla_t2_sensor_kit "
-        "map_path:=/home/u29r26/developing/Town10 launch_system:=false"
+        "map_path:=/work/Valentin_dev/tumgeka_bridge/Town10 launch_system:=false"
     )
     # launch_system:=false
     return run_docker_command(container_name, command, autoware_terminal)
@@ -184,7 +186,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             trajectory=traj
         )
         agents["adversary"] = adv_agent
-    elif strategy == "cat_iterative":# or strategy == "cat":
+    elif strategy == "cat_iterative" or strategy == "cat" or strategy == "cat_no_odd":
         adv_agent = GoingStraightAgent()
         agents["adversary"] = adv_agent
         print("newAGent")
@@ -203,13 +205,13 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     
     
     print("\n waiting for autoware...")
-    for i in tqdm(range(470)):
+    for i in tqdm(range(450)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()
 
-    #init = init_gnss_again(autoware_container_name, default_terminal)
+    """init = init_gnss_again(autoware_container_name, default_terminal)
 
-    """print("\n init autoware again...")
+    print("\n init autoware again...")
     for i in tqdm(range(100)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()"""
@@ -225,6 +227,8 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         rclpy.spin_once(pose_publisher, timeout_sec=2)
     except KeyboardInterrupt:
         pass
+    for actor in CarlaDataProvider.get_world().get_actors():
+        print(actor)
     
     print("\n watiting for autonomous mode....")
     for i in tqdm(range(WaitingTime.WAITFORAUTONOMOUS)):
@@ -245,8 +249,10 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
         #TODO implement wait for ego to have specific speed
         pos = env.actors["ego_vehicle"].get_location()
-        if pos.y > WaitingTime.COORDINATECHECK:
+        #if pos.y > WaitingTime.COORDINATECHECK:
         #if pos.x > WaitingTime.COORDINATECHECK2:
+        #if pos.y < WaitingTime.COORDINATECHECK6:
+        if pos.y < WaitingTime.COORDINATECHECK7:
             break
         time.sleep(.03)
         CarlaDataProvider.get_world().tick()
@@ -256,12 +262,12 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     counter = 0
     collision = False
     while not done:
-        if (counter == 40 or counter == 100 or counter == 140) and strategy == "cat_iterative":
+        if (counter == 30 or counter == 80  or counter == 95 or counter == 105) and strategy == "cat_iterative":
             start = time.time()
             if counter > 50:
                 _, adv_traj, ego_traj = env._generate_adversarial_route_iterative(vis=True)
             else:
-                _, adv_traj, ego_traj = env._generate_adversarial_route_iterative()
+                _, adv_traj, ego_traj = env._generate_adversarial_route_iterative(vis=True)
             if adv_traj is not None:
                 traj = [
                     (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
@@ -274,15 +280,20 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
                 agents["adversary"] = adv_agent
             end = time.time()
             print(end - start)
+            
         counter += 1
         actions = joint_policy(agents)
         obs, reward, done, truncated, info = env.step(actions)
-        time.sleep(.08)
+        time.sleep(.005)
         if env.coll:
             collision = True
             break
         #done = all(done.values())
         env.render()
+        if (counter -1 == 30 or counter -1 == 80  or counter -1 == 95 or counter -1 == 105) and strategy == "cat_iterative":
+            print("sleeping")
+            time.sleep(30)
+            
         if counter > WaitingTime.MAXTIMESTEPS:
             done = True
         else:
@@ -311,7 +322,9 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
 
     #--------------------return if we are not within a CAT run-----------------------
     print(strategy)
-    if strategy != "cat":
+    if True:
+        save_log_file(env, info, parameters, "base_scenario", test_xosc)
+    if strategy != "cat" and strategy != "cat_no_odd":
         #check if AW moved:
         ego_traj = env._trajectories["ego_vehicle"]
         started = math.hypot(ego_traj[0]["x"] - ego_traj[-1]["x"], ego_traj[0]["y"] - ego_traj[-1]["y"]) > 2
@@ -323,11 +336,11 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         if not started:
             print("AW did not start!!")
             return False
-        if iteration % 8 == 0 and iteration > 0:
+        """if iteration % 8 == 0 and iteration > 0:
             with open(progress_file, "w") as f:
                 f.write(str(1))
             print(f"[Main] Progress written: {1}")
-            time.sleep(120)
+            time.sleep(120)"""
         
         return True
     print(num_iterations)
@@ -336,7 +349,8 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
         obs, info = env.reset(options={
             "scene": scene,
-            "adversarial": True
+            "adversarial": True,
+            "method": strategy
         })
         print("Reseting the environment")
 
@@ -344,6 +358,11 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         #gt_yaw = info["kpis"]["adv_yaw"]
         #gt_acc = info["kpis"]["adv_acc"]
         print("getting_traj")
+        if info["adversary"]["adv_trajectory"] is None:
+            print("no valid traj exiting...")
+            run_docker_restart_command(autoware_container_name, default_terminal)
+            run_docker_restart_command(bridge_container_name, default_terminal)
+            return
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
             for point in info["adversary"]["adv_trajectory"]
@@ -365,7 +384,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name, bridge_terminal) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(450)):
+        for i in tqdm(range(520)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -399,8 +418,10 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         for i in tqdm(range(WaitingTime.MAXSTARTDELAY + 200)):
             #TODO implement wait for ego to have specific speed
             pos = env.actors["ego_vehicle"].get_location()
-            if pos.y > WaitingTime.COORDINATECHECK:
+            #if pos.y > WaitingTime.COORDINATECHECK:
             #if pos.x > WaitingTime.COORDINATECHECK2:
+            #if pos.y < WaitingTime.COORDINATECHECK6:
+            if pos.y < WaitingTime.COORDINATECHECK7:
                 break
             time.sleep(.03)
             CarlaDataProvider.get_world().tick()
@@ -445,11 +466,11 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         run_docker_restart_command(bridge_container_name, default_terminal)
 
         save_log_file(env, info, parameters, strategy, test_xosc)
-        if iteration % 8 == 0 and iteration > 0:
+        """if iteration % 8 == 0 and iteration > 0:
             with open(progress_file, "w") as f:
                 f.write(str(1))
             print(f"[Main] Progress written: {1}")
-            time.sleep(120)
+            time.sleep(120)"""
 
 
 def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
@@ -468,7 +489,7 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
             trajectory=traj
         )
         agents["adversary"] = adv_agent
-    elif strategy == "cat_iterative":
+    elif strategy == "cat_iterative" or strategy == "cat" or strategy == "cat_no_odd":
         adv_agent = GoingStraightAgent()
         agents["adversary"] = adv_agent
         print("newAGent")
@@ -479,6 +500,9 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
     
     #----------------main loop--------------------------------------------
     counter = 0
+    """for i in range(10000):
+        time.sleep(.03)
+        CarlaDataProvider.get_world().tick()"""
     while not done:
         if counter % 40 == 0 and counter < 110 and counter > 0 and strategy == "cat_iterative":
             start = time.time()

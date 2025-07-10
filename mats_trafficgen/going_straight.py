@@ -21,7 +21,7 @@ class GoingStraightAgent(BasicAgent):
     def run_step(self):
         print("i am going!!")
         ctrl = carla.VehicleControl()
-        ctrl.throttle = .50
+        ctrl.throttle = .60
         ctrl.brake = .0
         ctrl.steer = 0
         return ctrl

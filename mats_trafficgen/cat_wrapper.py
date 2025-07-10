@@ -102,14 +102,14 @@ def visualize_traj(x, y, yaw, width, length, color, skip=5):
 
         pitch = np.arcsin((front.transform.location.z - loc.z) / (length / 2))
         pitch = np.rad2deg(pitch)
-        world.debug.draw_point(loc, size=0.1, color=color, life_time=0)
+        world.debug.draw_point(loc, size=0.1, color=color, life_time=.2)
         world.debug.draw_box(bbox, carla.Rotation(yaw=yaw_t.item(), pitch=pitch),
                              thickness=0.1, color=color,
-                             life_time=0)
+                             life_time=.2)
         time = ts[t]
         loc += carla.Location(z=0.2)
         world.debug.draw_string(loc, f"{time:.1f}s", draw_shadow=True, color=color,
-                                life_time=10)
+                                life_time=.2)
 
 
 def get_full_trajectory(id, features, with_yaw=False, future=None):
@@ -230,7 +230,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         if options.get("adversarial", False):
             # make option for random trajectory
             self._update_actor_ids()
-            features, adv_traj = self._generate_adversarial_route()
+            if options.get("strategy", "cat"):
+                features, adv_traj = self._generate_adversarial_route()
+            else:
+                features, adv_traj = self._generate_adversarial_route(check_odd=False)
             if self._adv_agent not in info:
                 info[self._adv_agent] = {}
             info[self._adv_agent]["adv_trajectory"] = adv_traj
@@ -320,7 +323,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             print("couldnt step env... for some reason")
         print("after stepping parent")
         world = CarlaDataProvider.get_world()
-
+        print("i am here 1")
         if info["__common__"]["current_frame"] % self._sample_frequency == 0:
             for track in self._trajectories:
                 actor = self.actors[track]
@@ -331,7 +334,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
         ego = self.actors[self._ego_agent]
         adv = self.actors[self._adv_agent]
-
+        print("i am here 2")
         # calculate KPIs and add them to self.kpis
         self.calculate_kpis(ego, adv)
 
@@ -343,6 +346,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 50),
             carla.Rotation(pitch=-90)
         ))
+        print("i am here 3")
         return obs, rewards, terminated, truncated, info
 
     def observe(self, agent: str) -> dict:
@@ -460,8 +464,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
     def _score_trajectories(self, pred_trajectory, pred_score, features):
         return pred_score
 
-    def _generate_adversarial_route(self):
+    def _generate_adversarial_route(self, check_odd=True):
         features, ego_route = self._get_features()
+
+        pred_trajectory, pred_score = self._sample_trajectories(features)
 
         trajs_AV = np.concatenate([
             features["state/future/x"][self.agents.index(self._ego_agent)].reshape(-1, 1),
@@ -469,20 +475,20 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         ], axis=1)
         
         #trajs_AV = np.expand_dims(trajs_AV, axis=0)
-        if len(self.ego_trajs_history) < 10:
-            self.ego_trajs_history.append(trajs_AV)
+        if len(self.ego_trajs_history) >= 10:
+            self.ego_trajs_history.pop(0)
+        self.ego_trajs_history.append(trajs_AV)
 
-        pred_trajectory, pred_score = self._sample_trajectories(features)
         #remove trajs that are not on roadgraph
         scores = self._score_trajectories(pred_trajectory, pred_score, features)
-        adv_traj_id, adv_traj = self._select_colliding_trajectory(features, pred_score, pred_trajectory)
+        adv_traj_id, adv_traj = self._select_colliding_trajectory(features, pred_score, pred_trajectory, check_odd=check_odd)
 
         # world.apply_settings(settings)
         # world.tick()
 
         return features, adv_traj
 
-    def _select_colliding_trajectory(self, features, pred_score, pred_trajectory):
+    def _select_colliding_trajectory(self, features, pred_score, pred_trajectory, check_odd=True):
         trajs_OV = pred_trajectory[self.agents.index(self._adv_agent)]
         probs_OV = pred_score[self.agents.index(self._adv_agent)]
         probs_OV[6:] = probs_OV[6]
@@ -501,7 +507,11 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         ], axis=1)
         
         trajs_AV = np.expand_dims(trajs_AV, axis=0)"""
-
+        print("ego_traj is:")
+        print(self.ego_trajs_history[0][::5])
+        print("_--------adv traj is:----------")
+        print(trajs_OV[0][::5])
+        print("_------------------")
         trajs_AV = self.ego_trajs_history
         for j, prob_OV in enumerate(probs_OV):
             P4 = 1
@@ -515,7 +525,15 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 np.rad2deg(get_polyline_yaw(full_adv_traj)).reshape(-1, 1)
             ], axis=1)
             # CHeck if on roadgraph here:
-            if not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
+            visualize_traj(
+                full_adv_traj[4:-4, 0],
+                full_adv_traj[4:-4, 1],
+                full_adv_traj[4:-4, 2],
+                1.4,
+                2.9,
+                (0, 5, 5)
+            )
+            if not check_odd and not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
                 """visualize_traj(
@@ -524,10 +542,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     full_adv_traj[4:-4, 2],
                     1.4,
                     2.9,
-                    (5, 0, 0)
+                    (5, 5, 0)
                 )"""
                 res[j] += 0
-                min_dist[j] = 1000000000000
+                min_dist[j] = 100000
                 continue
             """visualize_traj(
                 full_adv_traj[4:-4, 0],
@@ -564,7 +582,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                                       1) - 0.5 * length_OV * sin_theta - 0.5 * width_OV * cos_theta
             ], axis=1)
 
-            probs_AV = np.ones(len(trajs_AV))
+            probs_AV = np.maximum(0, 1 - 0.08 * np.arange(len(trajs_AV)))
             for i, prob_AV in enumerate(probs_AV):
                 P2 = prob_AV
                 traj_AV = trajs_AV[i][::5]
@@ -660,6 +678,9 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
             adv_traj_id = np.argmax(res)
         else:
             adv_traj_id = np.argmin(min_dist)
+            print(min_dist)
+            if (np.min(min_dist) == 100000):
+                return None, None
 
         adv_path = trajs_OV[adv_traj_id]
         adv_yaw = get_polyline_yaw(adv_path).reshape(-1, 1)
@@ -715,7 +736,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         spectator = world.get_spectator()
         ego_loc = ego.get_location()
         spectator.set_transform(carla.Transform(
-            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 80),
+            carla.Location(ego_loc.x, ego_loc.y -10, ego_loc.z + 60),
             carla.Rotation(pitch=-90)
         ))
         settings = world.get_settings()
@@ -921,14 +942,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         network = self._network
         trajectory_yaw_corrected = self.correct_yaw_by_distance_step3(trajectory_original)
         trajectory = [(x, -y, -z) for x, y, z in trajectory_yaw_corrected]
-        if traj_ov is not None:
+        """if traj_ov is not None:
             adv_vel = np.linalg.norm(get_polyline_vel(traj_ov), axis=1).reshape(-1, 1)
-            if max(adv_vel) > 69:
+            if max(adv_vel) > 82:
                 print(f"Speed limit exceeded")
                 if True:    
                     print(f"Trajectory INVALID:  violations found.")
                     #plot_trajectory_vs_network(trajectory, network, None, idx, None, "speed_limit/invalid_trajectory_debug")
-                return False
+                return False"""
         
         """if not self.is_trajectory_within_speed_limit(trajectory, 17):
             print(f"Speed limit exceeded")
@@ -985,6 +1006,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     invalid_points.append((x1, y1))
                     invalid_reasons.append("Yaw Misalignment from one of the traj points.")
                     if not debug:
+                        print("not valid!")
                         return False  
                     continue  # Move to next point
             else:
@@ -1554,7 +1576,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         self.kpis["mttc"].append(mttc[0])
         self.kpis["risk_coefficient"].append(risk_coefficient)
         acc = adv.get_acceleration()
-        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2 + acc.z**2))
+        self.kpis["adv_acc"].append(math.sqrt(acc.x**2 + acc.y**2))
         self.kpis["near_miss_ttc"].append(near_miss_ttc[0])
         self.kpis["euclidean_distance"].append(calc_euclidian_distance(ego, adv))
         #self.kpis["enhanced_ttc"].append(self.calculate_enhanced_ttc(ego, adv))
@@ -2170,8 +2192,8 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
         width, length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
         
-        trajs_AV = pred_trajectory[self.agents.index(self._ego_agent)][:16]
-        probs_AV = pred_score[self.agents.index(self._ego_agent)][:16]
+        trajs_AV = pred_trajectory[self.agents.index(self._ego_agent)][:1]
+        probs_AV = pred_score[self.agents.index(self._ego_agent)][:1]
         probs_AV[:] = probs_AV[0]
         probs_AV = np.exp(probs_AV)
         probs_AV = probs_AV / np.sum(probs_AV)
@@ -2243,14 +2265,14 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                     full_ego_traj,
                     np.rad2deg(get_polyline_yaw(full_ego_traj)).reshape(-1, 1)
                 ], axis=1)
-                """visualize_traj(
+                visualize_traj(
                     full_ego_traj[4:-4, 0],
                     full_ego_traj[4:-4, 1],
                     full_ego_traj[4:-4, 2],
                     1.4,
                     2.9,
                     (5, 0, 5)
-                )"""
+                )
 
                 yaw_AV = get_polyline_yaw(trajs_AV[i])[::5].reshape(-1, 1)
                 width_AV = width
@@ -2398,22 +2420,22 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
 
         ego_width, ego_length = ego.bounding_box.extent.y * 2, ego.bounding_box.extent.x * 2
         adv_width, adv_length = adversary.bounding_box.extent.y * 2, adversary.bounding_box.extent.x * 2
-        visualize_traj(
+        """visualize_traj(
             ego_traj[4:-4, 0],
             ego_traj[4:-4, 1],
             ego_traj[4:-4, 2],
             ego_width,
             ego_length,
             (0, 5, 0)
-        )
-        visualize_traj(
+        )"""
+        """visualize_traj(
             adv_traj_original[4:-4, 0],
             adv_traj_original[4:-4, 1],
             adv_traj_original[4:-4, 2],
             adv_width,
             adv_length,
             (0, 0, 5)
-        )
+        )"""
         visualize_traj(
             full_adv_traj[4:-4, 0],
             full_adv_traj[4:-4, 1],
@@ -2427,7 +2449,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         spectator = world.get_spectator()
         ego_loc = ego.get_location()
         spectator.set_transform(carla.Transform(
-            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 60),
+            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 50),
             carla.Rotation(pitch=-90)
         ))
         settings = world.get_settings()
