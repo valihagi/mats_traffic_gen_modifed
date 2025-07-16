@@ -169,7 +169,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     """obs, info = env.reset(options={
                 "scene": scene
             })"""
-    print("sleeping now")
+    #print("sleeping now")
     print("test")
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
     #run_docker_restart_command(autoware_container_name, default_terminal)
@@ -290,9 +290,9 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
             break
         #done = all(done.values())
         env.render()
-        if (counter -1 == 30 or counter -1 == 80  or counter -1 == 95 or counter -1 == 105) and strategy == "cat_iterative":
+        """if (counter -1 == 30 or counter -1 == 80  or counter -1 == 95 or counter -1 == 105) and strategy == "cat_iterative":
             print("sleeping")
-            time.sleep(30)
+            time.sleep(30)"""
             
         if counter > WaitingTime.MAXTIMESTEPS:
             done = True

@@ -44,13 +44,13 @@ import subprocess
 
 progress_file = "/workspace/shared/progress.txt"
 
-autoware_container_name = "relaxed_banach"
-bridge_container_name = "busy_swirles"
+autoware_container_name = "objective_aryabhata"
+bridge_container_name = "infallible_dhawan"
 carla_container_name = "stupefied_villani"
 
-autoware_terminal = "/dev/pts/3"
-bridge_terminal = "/dev/pts/4"
-default_terminal = "/dev/pts/8"
+autoware_terminal = "/dev/pts/8"
+bridge_terminal = "/dev/pts/9"
+default_terminal = "/dev/pts/10"
 
 
 """
@@ -118,7 +118,7 @@ def main(args):
     random.seed(SEED)
     np.random.seed(SEED)
     strategy = args.strategy
-    test_xosc = "test_geidorf"
+    test_xosc = "test"
 
     env = mats_gym.openscenario_env(
         scenario_files=f"scenarios/open_scenario/{test_xosc}.xosc",
@@ -161,32 +161,34 @@ def main(args):
         carla.Rotation(yaw=angle_deg)
     )"""
     #other scenario
-    
-    """direction_vector = (-1, 0)
-    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
-    angle_deg = math.degrees(angle_rad)
-    target_point = carla.Transform(
-        carla.Location(82.5, -70, 0.0),  # Assuming Z = 0 for ground level
-        carla.Rotation(yaw=angle_deg)
-    )"""
+    if test_xosc == "test":
+        direction_vector = (-1, 0)
+        angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+        angle_deg = math.degrees(angle_rad)
+        target_point = carla.Transform(
+            carla.Location(82.5, -70, 0.0),  # Assuming Z = 0 for ground level
+            carla.Rotation(yaw=angle_deg)
+        )
 
     #test2.xosc
-    """direction_vector = (0, -1)
-    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
-    angle_deg = math.degrees(angle_rad)
-    target_point = carla.Transform(
-        carla.Location(43.5, -40, 0),  # Assuming Z = 0 for ground level
-        carla.Rotation(yaw=angle_deg)
-    )"""
+    if test_xosc == "test2":
+        direction_vector = (0, -1)
+        angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+        angle_deg = math.degrees(angle_rad)
+        target_point = carla.Transform(
+            carla.Location(43.5, -40, 0),  # Assuming Z = 0 for ground level
+            carla.Rotation(yaw=angle_deg)
+        )
 
     #test6.xosc
-    """direction_vector = (1, 0)
-    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
-    angle_deg = math.degrees(angle_rad)
-    target_point = carla.Transform(
-        carla.Location(-72.5, 68.5, 0),  # Assuming Z = 0 for ground level
-        carla.Rotation(yaw=angle_deg)
-    )"""
+    if test_xosc == "test6":
+        direction_vector = (1, 0)
+        angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+        angle_deg = math.degrees(angle_rad)
+        target_point = carla.Transform(
+            carla.Location(-72.5, 68.5, 0),  # Assuming Z = 0 for ground level
+            carla.Rotation(yaw=angle_deg)
+        )
 
     """#test7.xosc OLD
     direction_vector = (0, -1)
@@ -198,13 +200,14 @@ def main(args):
     )"""
 
     #test7.xosc new
-    direction_vector = (1, 0)
-    angle_rad = math.atan2(direction_vector[1], direction_vector[0])
-    angle_deg = math.degrees(angle_rad)
-    target_point = carla.Transform(
-        carla.Location(-90, -16.5, 0),  # Assuming Z = 0 for ground level
-        carla.Rotation(yaw=angle_deg)
-    )
+    if test_xosc == "test7":
+        direction_vector = (1, 0)
+        angle_rad = math.atan2(direction_vector[1], direction_vector[0])
+        angle_deg = math.degrees(angle_rad)
+        target_point = carla.Transform(
+            carla.Location(-90, -16.5, 0),  # Assuming Z = 0 for ground level
+            carla.Rotation(yaw=angle_deg)
+        )
 
     autoware_target_point = None #"""{
             #'x': 71.0,
