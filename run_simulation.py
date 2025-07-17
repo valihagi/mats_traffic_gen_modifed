@@ -67,6 +67,18 @@ class FakeWaypoint:
 
 
 def get_agents(env):
+    """
+    Create and configure agent controllers for all agents in the environment.
+
+    Sets up BasicAgent controllers for each agent with specified routes and
+    configurations including speed targets and behavior options.
+
+    Args:
+        env: The MATS gym environment containing agents and scenario configuration.
+
+    Returns:
+        dict: A dictionary mapping agent names to their respective controller instances.
+    """
     controllers = {}
     map = CarlaDataProvider.get_map()
     for i, agent in enumerate(env.agents):
@@ -90,6 +102,20 @@ def get_agents(env):
     
     
 def kill_process(container_name, pid, default_terminal):
+    """
+    Kill a specific process running in a Docker container.
+
+    Executes a kill command for the specified process ID within the
+    given Docker container.
+
+    Args:
+        container_name (str): Name of the Docker container.
+        pid (str): Process ID to kill.
+        default_terminal (str): Terminal device path for output redirection.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the kill command.
+    """
     command = (
         f"kill {pid}"
     )
@@ -98,6 +124,18 @@ def kill_process(container_name, pid, default_terminal):
     
     
 def change_control_mode(container_name, default_terminal):
+    """
+    Change Autoware's operation mode to autonomous driving.
+
+    Sends a ROS2 service call to switch Autoware to autonomous operation mode.
+
+    Args:
+        container_name (str): Name of the Docker container running Autoware.
+        default_terminal (str): Terminal device path for output redirection.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the command execution.
+    """
     command = (
         "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
@@ -106,6 +144,18 @@ def change_control_mode(container_name, default_terminal):
     return run_docker_command(container_name, command, default_terminal)
 
 def init_gnss_again(container_name, default_terminal):
+    """
+    Re-initialize GNSS localization in Autoware.
+
+    Sends a ROS2 service call to reinitialize the localization system.
+
+    Args:
+        container_name (str): Name of the Docker container running Autoware.
+        default_terminal (str): Terminal device path for output redirection.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the command execution.
+    """
     command = (
         "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
@@ -115,6 +165,18 @@ def init_gnss_again(container_name, default_terminal):
     
     
 def check_is_stopped(container_name, default_terminal):
+    """
+    Check if the system is stopped and change to autonomous mode.
+
+    Note: This function appears to duplicate change_control_mode functionality.
+
+    Args:
+        container_name (str): Name of the Docker container running Autoware.
+        default_terminal (str): Terminal device path for output redirection.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the command execution.
+    """
     command = (
         "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
@@ -124,6 +186,18 @@ def check_is_stopped(container_name, default_terminal):
     
     
 def run_autoware_simulation(container_name, autoware_terminal):
+    """
+    Launch the Autoware simulation with specific vehicle and sensor models.
+
+    Starts the Autoware end-to-end simulator with CARLA T2 vehicle and sensor kit.
+
+    Args:
+        container_name (str): Name of the Docker container running Autoware.
+        autoware_terminal (str): Terminal device path for output redirection.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the Autoware launch command.
+    """
     command = (
         "cd /work/Valentin_dev/tumgeka_bridge/autoware_fixed/autoware && "
         "source install/setup.bash && "
@@ -136,6 +210,19 @@ def run_autoware_simulation(container_name, autoware_terminal):
     
     
 def run_carla_aw_bridge(container_name, bridge_terminal):
+    """
+    Launch the CARLA-Autoware bridge for communication between systems.
+
+    Starts the bridge that connects CARLA simulation with Autoware,
+    enabling data exchange between the simulator and autonomous driving stack.
+
+    Args:
+        container_name (str): Name of the Docker container running the bridge.
+        bridge_terminal (str): Terminal device path for output redirection.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the bridge launch command.
+    """
     command = (
         "source install/setup.bash && "
         "ros2 launch carla_autoware_bridge carla_aw_bridge.launch.py "
@@ -144,26 +231,70 @@ def run_carla_aw_bridge(container_name, bridge_terminal):
     return run_docker_command(container_name, command, bridge_terminal)
 
 def joint_policy(agents, counter=None):
-        actions = {}
-        for agent in agents:
-            if counter is not None:
-                if agent != "ego_vehicle":
-                    print("inhere")
-                    if counter > 60:
-                        actions[agent] = np.array([.65, 0, 0])
-                    else:
-                        actions[agent] = np.array([0, 0, 0])
-                    return actions
+    """
+    Generate actions for all agents using their respective control policies.
+
+    Computes control actions for each agent, with special handling for the ego vehicle
+    and optional counter-based behavior modification.
+
+    Args:
+        agents (dict): Dictionary mapping agent names to their controller instances.
+        counter (int, optional): Simulation step counter for time-based behavior changes.
+
+    Returns:
+        dict: Dictionary mapping agent names to their control actions as numpy arrays
+            containing [throttle, steer, brake] values.
+    """
+    actions = {}
+    for agent in agents:
+        if counter is not None:
             if agent != "ego_vehicle":
-                ctrl = agents[agent].run_step()
-                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
-            """else:
-                actions[agent] = np.array([.72, -.09, 0])"""
-        return actions
+                print("inhere")
+                if counter > 60:
+                    actions[agent] = np.array([.65, 0, 0])
+                else:
+                    actions[agent] = np.array([0, 0, 0])
+                return actions
+        if agent != "ego_vehicle":
+            ctrl = agents[agent].run_step()
+            actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+        """else:
+            actions[agent] = np.array([.72, -.09, 0])"""
+    return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
                    bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None,
                    test_xosc=None):
+    """
+    Execute the main simulation with Autoware, CARLA, and adversarial agents.
+
+    Orchestrates a complete simulation run including container management, agent setup,
+    and scenario execution with different strategies (CAT, random, etc.).
+
+    Args:
+        autoware_container_name (str): Name of Docker container running Autoware.
+        bridge_container_name (str): Name of Docker container running CARLA-Autoware bridge.
+        carla_container_name (str): Name of Docker container running CARLA.
+        default_terminal (str): Default terminal device path for command output.
+        autoware_terminal (str): Autoware-specific terminal device path.
+        bridge_terminal (str): Bridge-specific terminal device path.
+        env: The MATS gym environment instance.
+        args: Command-line arguments for simulation configuration.
+        scene: Scenic scene object, if using scenario-based simulation.
+        target_point (carla.Transform): Target pose for the ego vehicle.
+        strategy (str): Simulation strategy ('cat', 'cat_iterative', 'random', etc.).
+        adv_path (list, optional): Predefined adversarial trajectory points.
+        pose_publisher: ROS2 pose publisher instance.
+        iteration (int): Current iteration number.
+        autoware_target_point (dict, optional): Autoware-specific target point.
+        num_iterations (int, optional): Number of CAT iterations to run. Defaults to 50.
+        parameters (list, optional): Additional simulation parameters.
+        test_xosc (str, optional): XOSC test scenario identifier.
+
+    Returns:
+        bool or None: True if simulation completed successfully (for non-CAT strategies),
+            None for CAT strategies, False if Autoware failed to start.
+    """
 
     print("test")
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
@@ -456,6 +587,35 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
 def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
                 bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, parameters=None,
                 test_xosc=None, num_iterations=50):
+    """
+    Execute a simplified simulation without full Autoware integration.
+
+    Runs a basic simulation loop without the complexity of Docker container management
+    and Autoware integration, primarily for testing and development purposes.
+
+    Args:
+        autoware_container_name (str): Name of Docker container running Autoware (unused in dummy mode).
+        bridge_container_name (str): Name of Docker container running bridge (unused in dummy mode).
+        carla_container_name (str): Name of Docker container running CARLA.
+        default_terminal (str): Default terminal device path (unused in dummy mode).
+        autoware_terminal (str): Autoware terminal device path (unused in dummy mode).
+        bridge_terminal (str): Bridge terminal device path (unused in dummy mode).
+        env: The MATS gym environment instance.
+        args: Command-line arguments for simulation configuration.
+        scene: Scenic scene object, if using scenario-based simulation.
+        target_point (carla.Transform): Target pose for the ego vehicle (unused in dummy mode).
+        strategy (str): Simulation strategy ('cat', 'cat_iterative', 'random', etc.).
+        adv_path (list, optional): Predefined adversarial trajectory points.
+        pose_publisher: ROS2 pose publisher instance (unused in dummy mode).
+        iteration (int): Current iteration number.
+        autoware_target_point (dict, optional): Autoware-specific target point (unused in dummy mode).
+        parameters (list, optional): Additional simulation parameters (unused in dummy mode).
+        test_xosc (str, optional): XOSC test scenario identifier (unused in dummy mode).
+        num_iterations (int, optional): Number of CAT iterations to run. Defaults to 50.
+
+    Returns:
+        None: Function does not return a value.
+    """
         
     if scene is not None:
         agents = get_agents(env)

@@ -25,6 +25,20 @@ from matplotlib import pyplot as plt
 
 
 def run_docker_command(container_name, command, output_dest):
+    """
+    Execute a command inside a Docker container and redirect output to a file.
+
+    Runs a bash command within the specified Docker container and redirects
+    both stdout and stderr to the specified output destination.
+
+    Args:
+        container_name (str): Name of the Docker container to execute command in.
+        command (str): The bash command to execute inside the container.
+        output_dest (str): File path where command output will be written.
+
+    Returns:
+        subprocess.Popen: The subprocess object for the executed command.
+    """
     exec_command = [
         "docker", "exec", "-it", container_name, "bash", "-c", command
     ]
@@ -41,6 +55,20 @@ def run_docker_command(container_name, command, output_dest):
     
     
 def run_docker_restart_command(container_name, output_dest):
+    """
+    Restart a Docker container and capture the output.
+
+    Executes a docker restart command for the specified container and
+    handles the output and error reporting.
+
+    Args:
+        container_name (str): Name of the Docker container to restart.
+        output_dest (str): File path where command output will be written.
+
+    Returns:
+        subprocess.Popen or None: The subprocess object for the restart command,
+            or None if the restart failed.
+    """
     exec_command = [
         "docker", "restart", container_name
     ]
@@ -71,6 +99,21 @@ def run_docker_restart_command(container_name, output_dest):
     
     
 def get_docker_ouptut(process, tick_carla_client, world, wait_lines):
+    """
+    Read and display output from a Docker process in real time.
+
+    Continuously reads output from a subprocess and optionally ticks the CARLA world.
+    Note: Function name has a typo (should be 'get_docker_output').
+
+    Args:
+        process (subprocess.Popen): The subprocess to read output from.
+        tick_carla_client (bool): Whether to tick the CARLA world client.
+        world: The CARLA world instance to tick.
+        wait_lines (int): Number of output lines to read before stopping.
+
+    Returns:
+        None: Function does not return a value.
+    """
     # Capture and print output in real time
     for i in range(wait_lines):
         print(i)
@@ -91,6 +134,18 @@ def get_docker_ouptut(process, tick_carla_client, world, wait_lines):
         
         
 def get_carla_point_from_scene(scene):
+    """
+    Extract target point from a Scenic scene for navigation.
+
+    Analyzes the ego vehicle's route in the scene and determines an appropriate
+    target point and heading for navigation purposes.
+
+    Args:
+        scene: Scenic scene object containing ego vehicle route information.
+
+    Returns:
+        carla.Transform: Target transform with location and rotation for navigation.
+    """
     length = len(scene.egoObject.route[-1].centerline)
     if length > 10:
         last_point = scene.egoObject.route[-1].centerline[6]
@@ -122,6 +177,15 @@ def get_carla_point_from_scene(scene):
 
 def get_carla_point_from_xml():
     """
+    Get a hardcoded CARLA transform from XML configuration.
+
+    Returns a predefined transform that was previously extracted from XML data.
+    Currently returns dummy/placeholder coordinates.
+
+    Returns:
+        carla.Transform: A hardcoded transform with location and rotation values.
+    """
+    """
     Only dummy code for now
     """
 
@@ -131,6 +195,26 @@ def get_carla_point_from_xml():
     )
 
 def visualize_traj(x, y, yaw, width, length, color, world, map, skip=5):
+    """
+    Visualize a vehicle trajectory in the CARLA world using debug drawing.
+
+    Draws bounding boxes and text labels along a trajectory to visualize
+    the vehicle's path, orientation, and timing.
+
+    Args:
+        x (array-like): X coordinates of trajectory points.
+        y (array-like): Y coordinates of trajectory points.
+        yaw (array-like): Yaw angles at each trajectory point.
+        width (float): Vehicle width for bounding box visualization.
+        length (float): Vehicle length for bounding box visualization.
+        color (tuple): RGB color tuple for visualization.
+        world: CARLA world instance for debug drawing.
+        map: CARLA map instance for waypoint queries.
+        skip (int, optional): Number of points to skip between visualizations. Defaults to 5.
+
+    Returns:
+        None: Function does not return a value.
+    """
     #world = CarlaDataProvider.get_world()
     #map = CarlaDataProvider.get_map()
     color = carla.Color(*color)
@@ -161,6 +245,25 @@ def visualize_traj(x, y, yaw, width, length, color, world, map, skip=5):
 
 
 def generate_random_adversarial_route(env, num_waypoints, times):
+    """
+    Generate a random adversarial trajectory using cubic Bezier curves.
+
+    Creates a smooth trajectory from the adversary's current position to a random
+    endpoint using Bezier curve interpolation with random control points.
+
+    Args:
+        env: The MATS gym environment containing the adversary vehicle.
+        num_waypoints (int): Number of waypoints to generate along the trajectory.
+        times (array-like): Time stamps for the trajectory (unused in current implementation).
+
+    Returns:
+        tuple: A tuple containing:
+            - trajectory (list): List of [x, y, speed] waypoints.
+            - ego_traj (np.ndarray): Trajectory with yaw angles included.
+            - ego_width (float): Vehicle width.
+            - ego_length (float): Vehicle length.
+            - parameters (list): Generation parameters [end_x, end_y, length_factor1, width_offset1, length_factor2, width_offset2].
+    """
     random.seed(datetime.now().timestamp())
     vehicle = env.actors["adversary"]
 
@@ -201,6 +304,24 @@ def generate_random_adversarial_route(env, num_waypoints, times):
 
 
 def generate_parametrized_adversarial_route(env, num_waypoints, times):
+    """
+    Generate a parametrized adversarial trajectory with specific distance and angle parameters.
+
+    Creates a trajectory based on environment parameters for distance and angle,
+    then updates an XML file with the generated trajectory data.
+
+    Args:
+        env: The MATS gym environment containing parameters and adversary vehicle.
+        num_waypoints (int): Number of waypoints to generate along the trajectory.
+        times (array-like): Time stamps for the trajectory waypoints.
+
+    Returns:
+        tuple: A tuple containing:
+            - trajectory (list): List of [x, y, speed] waypoints.
+            - ego_traj (np.ndarray): Trajectory with yaw angles included.
+            - ego_width (float): Vehicle width.
+            - ego_length (float): Vehicle length.
+    """
     vehicle = env.actors["adversary"]
 
     x_start, y_start = vehicle.get_location().x, vehicle.get_location().y
@@ -274,16 +395,19 @@ def generate_parametrized_adversarial_route(env, num_waypoints, times):
 
 def generate_trajectories_from_position(start_position, heading_deg, road_network: Network, max_depth=3):
     """
-    Generate all possible trajectories from a starting position and heading on a Scenic road network.
+    Generate all possible trajectories from a starting position on a road network.
+
+    Explores the road network from a given starting position and heading to find
+    all possible paths within distance constraints, using depth-first search.
 
     Args:
         start_position (tuple): (x, y) world position of the vehicle.
         heading_deg (float): Heading angle in degrees (0 = east, 90 = north, etc.).
-        road_network (Network): Scenic road network.
-        max_depth (int): Max depth to search through successor lanes.
+        road_network (Network): Scenic road network to explore.
+        max_depth (int, optional): Maximum depth to search through successor lanes. Defaults to 3.
 
     Returns:
-        list of list of (x, y): Each trajectory is a list of (x, y) tuples.
+        list: List of trajectories, where each trajectory is a list of (x, y) tuples.
     """
     min_distance = 30
     max_distance = 58
@@ -364,6 +488,19 @@ def generate_trajectories_from_position(start_position, heading_deg, road_networ
 
 def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
     """
+    Resample a trajectory to have equal arc-length spacing between points.
+
+    Converts a trajectory with arbitrary point spacing to one with uniform
+    arc-length spacing, preserving the first and last points.
+
+    Args:
+        trajectory_xy (list or np.ndarray): Array of shape (N, 2) with [x, y] points.
+        num_points (int, optional): Number of resampled points. Defaults to 180.
+
+    Returns:
+        np.ndarray: Resampled trajectory of shape (num_points, 2).
+    """
+    """
     Resample a trajectory to have `num_points` with equal arc-length spacing,
     preserving the first and last points.
 
@@ -395,6 +532,20 @@ def resample_trajectory_to_equal_distance(trajectory_xy, num_points=180):
 
 def shift_trajectory_laterally(traj, offset_factor):
     """
+    Apply lateral shift to a 2D trajectory based on offset factor.
+
+    Shifts the trajectory perpendicular to its direction of travel, useful
+    for creating lane change or avoidance behaviors.
+
+    Args:
+        traj (np.ndarray): Array of shape (N, 2) representing [x, y] positions.
+        offset_factor (float): Shift factor in range [-1, 1], where positive
+            values shift to the left relative to the trajectory direction.
+
+    Returns:
+        np.ndarray: Shifted trajectory of same shape as input.
+    """
+    """
     Shift a 2D trajectory laterally based on offset_factor [-1, 1].
     
     Parameters:
@@ -422,6 +573,24 @@ def shift_trajectory_laterally(traj, offset_factor):
     return shifted_traj
 
 def create_random_traj(ego_loc, network, parameters=None, test_xosc=None):
+    """
+    Create a random trajectory from available network paths with speed profiles.
+
+    Generates trajectories from possible paths in the road network, applies
+    randomization or uses provided parameters for reproducible generation.
+
+    Args:
+        ego_loc (tuple): (x, y) starting location for trajectory generation.
+        network (Network): Scenic road network to generate trajectories from.
+        parameters (dict, optional): DoE parameters containing turn_idx, max_speed,
+            acceleration, and lateral_offset. If None, values are randomized.
+        test_xosc (str, optional): Test scenario identifier for special handling.
+
+    Returns:
+        tuple: A tuple containing:
+            - trajectory (list): List of [x, y, speed] waypoints.
+            - parameters (list): Generation parameters [idx, acceleration, max_speed, lateral_offset].
+    """
     print(f"ego_loc is {ego_loc} here.")
     trajs = generate_trajectories_from_position(ego_loc, 0, network)
     """if test_xosc == "test7":
@@ -461,6 +630,21 @@ def create_random_traj(ego_loc, network, parameters=None, test_xosc=None):
     return trajectory, [idx, random_acc, random_max_speed, lateral_offset]
 
 def generate_timestamps(total_distance, num_points, acc, vmax):
+    """
+    Generate timestamps for a trajectory with acceleration, constant speed, and deceleration phases.
+
+    Creates a realistic timing profile for a trajectory that accelerates to maximum
+    speed, maintains it, then decelerates to a stop.
+
+    Args:
+        total_distance (float): Total distance to travel.
+        num_points (int): Number of trajectory points to generate timestamps for.
+        acc (float): Acceleration/deceleration value.
+        vmax (float): Maximum velocity to reach.
+
+    Returns:
+        np.ndarray: Array of timestamps corresponding to equally spaced trajectory points.
+    """
     # Phase 1: Acceleration phase
     t_accel = vmax / acc  # Time to reach vmax
     d_accel = 0.5 * acc * t_accel**2  # Distance covered during acceleration
@@ -502,9 +686,33 @@ def generate_timestamps(total_distance, num_points, acc, vmax):
 
 
 def generate_even_timestamps(num_points, timespan):
+    """
+    Generate evenly spaced timestamps over a given timespan.
+
+    Creates a linear progression of timestamps from 0 to timespan.
+
+    Args:
+        num_points (int): Number of timestamp points to generate.
+        timespan (float): Total time duration to span.
+
+    Returns:
+        np.ndarray: Array of evenly spaced timestamps.
+    """
     return np.linspace(0, timespan, num_points)
 
 def create_random_end_point(vehicle):
+    """
+    Generate a random endpoint for trajectory planning based on vehicle orientation.
+
+    Creates a random target location within specified distance constraints,
+    considering the vehicle's current heading and angle limitations.
+
+    Args:
+        vehicle: CARLA vehicle actor to generate endpoint for.
+
+    Returns:
+        tuple: A tuple containing (new_x, new_y) coordinates of the endpoint.
+    """
     min_dist = 30
     max_dist = 60
     transform = vehicle.get_transform()
@@ -521,6 +729,24 @@ def create_random_end_point(vehicle):
 
 
 def create_random_control_point(vehicle, target_x, target_y):
+    """
+    Generate a random control point for Bezier curve trajectory generation.
+
+    Creates a random point within a rectangular area between the vehicle's
+    current position and the target position for smooth curve generation.
+
+    Args:
+        vehicle: CARLA vehicle actor to generate control point for.
+        target_x (float): X coordinate of the trajectory target.
+        target_y (float): Y coordinate of the trajectory target.
+
+    Returns:
+        tuple: A tuple containing:
+            - random_x (float): X coordinate of the control point.
+            - random_y (float): Y coordinate of the control point.
+            - random_length_factor (float): Length factor [0, 1] along the path.
+            - random_width_offset (float): Width offset from the center line.
+    """
     width=30
     transform = vehicle.get_transform()
     yaw = math.radians(transform.rotation.yaw)
@@ -561,6 +787,25 @@ def create_random_control_point(vehicle, target_x, target_y):
     return random_x, random_y, random_length_factor, random_width_offset
 
 def get_vehicle_data(vehicle, near_miss=False):
+    """
+    Extract comprehensive vehicle state data for safety calculations.
+
+    Retrieves position, velocity, acceleration, and geometric data from a CARLA vehicle
+    and formats it for use in safety metric calculations.
+
+    Args:
+        vehicle: CARLA vehicle actor to extract data from.
+        near_miss (bool, optional): If True, uses expanded bounding box dimensions
+            for near-miss calculations. Defaults to False.
+
+    Returns:
+        dict: Dictionary containing vehicle state data with keys:
+            - x, y: Position coordinates
+            - vx, vy: Velocity components
+            - hx, hy: Heading unit vector components
+            - acc: Acceleration along heading direction
+            - length, width: Vehicle dimensions
+    """
     transform = vehicle.get_transform()
     location = transform.location
     rotation = transform.rotation
@@ -598,6 +843,22 @@ def get_vehicle_data(vehicle, near_miss=False):
     }
 
 def calculate_risk_coefficient(ego_vehicle, adv_vehicle, G=1.0, k=1.0, epsilon=1e-6):
+    """
+    Compute the Dynamic Risk Potential (DRP) between two vehicles.
+
+    Calculates risk coefficient from an adversarial vehicle to an ego vehicle
+    based on distance, relative velocity, and directional alignment.
+
+    Args:
+        ego_vehicle: CARLA actor representing the ego vehicle (target of risk computation).
+        adv_vehicle: CARLA actor representing the obstacle/adversarial vehicle.
+        G (float, optional): Scaling coefficient. Defaults to 1.0.
+        k (float, optional): Angle sensitivity coefficient. Defaults to 1.0.
+        epsilon (float, optional): Small value to avoid division by zero. Defaults to 1e-6.
+
+    Returns:
+        float: The risk coefficient value representing potential collision risk.
+    """
     """
     Compute the risk coefficient (DRP) from an obstacle vehicle to an ego vehicle.
 
@@ -647,6 +908,22 @@ def calculate_risk_coefficient(ego_vehicle, adv_vehicle, G=1.0, k=1.0, epsilon=1
 
 
 def calculate_ttc(vehicle1, vehicle2):
+    """
+    Calculate Time-to-Collision (TTC), DRAC, and MTTC between two vehicles.
+
+    Computes multiple safety metrics by analyzing the relative motion and
+    geometry of two vehicles using established traffic safety formulas.
+
+    Args:
+        vehicle1: First CARLA vehicle actor.
+        vehicle2: Second CARLA vehicle actor.
+
+    Returns:
+        tuple: A tuple containing (TTC, DRAC, MTTC) values where:
+            - TTC: Time to collision in seconds
+            - DRAC: Deceleration Rate to Avoid Collision
+            - MTTC: Modified Time to Collision
+    """
     # Extract data from both vehicles
     data1 = get_vehicle_data(vehicle1)
     data2 = get_vehicle_data(vehicle2)
@@ -679,6 +956,19 @@ def calculate_ttc(vehicle1, vehicle2):
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
 
 def calculate_near_miss_ttc(vehicle1, vehicle2):
+    """
+    Calculate near-miss TTC with expanded bounding boxes for safety analysis.
+
+    Similar to calculate_ttc but uses larger bounding boxes to detect
+    near-miss situations before actual collision potential.
+
+    Args:
+        vehicle1: First CARLA vehicle actor.
+        vehicle2: Second CARLA vehicle actor.
+
+    Returns:
+        tuple: A tuple containing (TTC, DRAC, MTTC) values with expanded safety margins.
+    """
     # Extract data from both vehicles
     data1 = get_vehicle_data(vehicle1, near_miss=True)
     data2 = get_vehicle_data(vehicle2, near_miss=True)
@@ -711,6 +1001,20 @@ def calculate_near_miss_ttc(vehicle1, vehicle2):
     return ttc_result["TTC"], ttc_result['DRAC'], ttc_result['MTTC']
 
 def calculate_entry_exit_times(conflict_area, traj, timestep):
+    """
+    Calculate entry and exit times for a trajectory through a conflict area.
+
+    Analyzes when an agent enters and exits a defined conflict zone based
+    on its trajectory, useful for Post-Encroachment Time calculations.
+
+    Args:
+        conflict_area: Shapely polygon representing the conflict zone.
+        traj (list): List of (x, y) trajectory points.
+        timestep (float): Time duration between trajectory points.
+
+    Returns:
+        list: List of (entry_time, exit_time) tuples for each passage through the conflict area.
+    """
     # makes way more sense to calculate this in post processing!!
     inside_prev = False
     entry_time = None
@@ -737,6 +1041,22 @@ def calculate_entry_exit_times(conflict_area, traj, timestep):
     return entry_exit_times
 
 def calculate_pet(agent1_traj, agent2_traj, conflict_zone_points, timestep_duration):
+    """
+    Calculate Post-Encroachment Time (PET) between two agent trajectories.
+
+    Computes the minimum time difference between when one agent exits and 
+    another enters a shared conflict zone, indicating collision proximity.
+
+    Args:
+        agent1_traj (list): List of (x, y) tuples representing first agent's trajectory.
+        agent2_traj (list): List of (x, y) tuples representing second agent's trajectory.
+        conflict_zone_points (list): List of (x, y) points defining the conflict zone polygon.
+        timestep_duration (float): Time per trajectory step in seconds.
+
+    Returns:
+        float or None: PET in seconds, None if no zone conflict occurred, 
+            or 0 if vehicles were in the zone simultaneously.
+    """
     """
     Calculates PET (Post-Encroachment Time) between two full trajectories after scenario execution.
 
@@ -775,6 +1095,19 @@ def calculate_pet(agent1_traj, agent2_traj, conflict_zone_points, timestep_durat
     return min(pet_list) if pet_list else None
 
 def calc_euclidian_distance(vehicle1, vehicle2):
+    """
+    Calculate the minimum Euclidean distance between two vehicle bounding boxes.
+
+    Computes the shortest distance between the edges of two vehicles by
+    creating polygon representations of their bounding boxes.
+
+    Args:
+        vehicle1: First CARLA vehicle actor.
+        vehicle2: Second CARLA vehicle actor.
+
+    Returns:
+        float: Minimum distance between vehicle bounding boxes in meters.
+    """
     bbox1 = calc_bounding_box_coordinates(vehicle1)
     bbox2 = calc_bounding_box_coordinates(vehicle2)
 
@@ -783,6 +1116,19 @@ def calc_euclidian_distance(vehicle1, vehicle2):
     return poly1.distance(poly2)
 
 def calc_bounding_box_coordinates(vehicle):
+    """
+    Calculate the 4 corner coordinates of a vehicle's bounding box.
+
+    Transforms the vehicle's local bounding box to world coordinates
+    considering position, rotation, and dimensions.
+
+    Args:
+        vehicle: CARLA vehicle actor to calculate bounding box for.
+
+    Returns:
+        list: List of 4 (x, y) tuples representing the corner coordinates
+            in order: [front-right, front-left, rear-left, rear-right].
+    """
     transform = vehicle.get_transform()
     bbox = vehicle.bounding_box
 
@@ -811,6 +1157,24 @@ def calc_bounding_box_coordinates(vehicle):
 
 
 def plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, idx, string):
+    """
+    Create a comprehensive plot of road geometry and trajectory data.
+
+    Visualizes road surface, lane directions, edges, markings, and vehicle
+    trajectory with directional indicators in a single matplotlib figure.
+
+    Args:
+        surface_xyz (np.ndarray): Road surface points as (N, 3) array.
+        surface_dir (np.ndarray): Direction vectors for road surface.
+        edges_xyz (np.ndarray): Road edge points as (N, 3) array.
+        markings_xyz (np.ndarray): Road marking points as (N, 3) array.
+        trajectory (np.ndarray): Vehicle trajectory with [x, y, yaw] columns.
+        idx (int): Index number for file naming.
+        string (str): String identifier for file naming.
+
+    Returns:
+        None: Saves plot to file and closes the figure.
+    """
     plt.figure(figsize=(10, 10))
 
     # Plot road surface points (e.g., gray)
@@ -868,6 +1232,23 @@ def plot_stuff(surface_xyz, surface_dir, edges_xyz, markings_xyz, trajectory, id
     plt.close()
 
 def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid_reasons, string):
+    """
+    Plot a trajectory against Scenic network infrastructure for validation.
+
+    Creates a visualization showing the trajectory overlaid on the road network
+    with lane boundaries, centerlines, and highlighted invalid points.
+
+    Args:
+        trajectory (list): List of (x, y, yaw) trajectory points.
+        network (scenic.core.network.Network): Scenic network object with road information.
+        invalid_points (list): List of (x, y) invalid trajectory points.
+        idx (int): Index number for file naming.
+        invalid_reasons (list): List of reasons why points are invalid.
+        string (str): String identifier for file naming.
+
+    Returns:
+        None: Displays plot, saves to file, and closes the figure.
+    """
     """
     Plots the given trajectory against Scenic's Network information.
     
@@ -931,6 +1312,23 @@ def plot_trajectory_vs_network(trajectory, network, invalid_points, idx, invalid
 
 def compute_bounding_box_corners(x, y, half_width, half_length, heading_deg):
     """
+    Compute the 4 corner coordinates of a vehicle's bounding box.
+
+    Calculates corner positions given the vehicle's center position,
+    dimensions, and heading angle.
+
+    Args:
+        x (float): X coordinate of vehicle center.
+        y (float): Y coordinate of vehicle center.
+        half_width (float): Half of the vehicle's width (distance from center to side).
+        half_length (float): Half of the vehicle's length (distance from center to front/rear).
+        heading_deg (float): Heading angle in degrees (0° = east, 90° = north).
+
+    Returns:
+        list: List of 4 (x, y) tuples representing corner coordinates
+            in order: [front-left, front-right, rear-right, rear-left].
+    """
+    """
     Compute the 4 corners of a car's bounding box given its center, size, and heading.
 
     Args:
@@ -974,6 +1372,24 @@ def compute_bounding_box_corners(x, y, half_width, half_length, heading_deg):
     return [front_left, front_right, rear_right, rear_left]
 
 def save_log_file(env, info, parameters, approach, test_xosc, in_odd=True):
+    """
+    Save simulation results and metrics to a JSON log file.
+
+    Stores trajectory data, KPIs, and metadata from a simulation run to
+    appropriate directories based on validity and approach type.
+
+    Args:
+        env: The MATS gym environment containing trajectory data.
+        info (dict): Dictionary containing simulation information and KPIs.
+        parameters (list): List of simulation parameters used.
+        approach (str): The simulation approach/strategy used.
+        test_xosc (str): The XOSC test scenario identifier.
+        in_odd (bool, optional): Whether the simulation was within operational
+            design domain. Defaults to True.
+
+    Returns:
+        None: Function does not return a value.
+    """
     # calc final metrics here:
     filename = f'/workspace/results/{test_xosc}/{approach}_results/succesfull_runs/data{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     if in_odd:

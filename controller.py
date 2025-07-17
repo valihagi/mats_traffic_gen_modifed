@@ -6,6 +6,12 @@ adex_container = "adex/cat:latest"
 carla_container = "carlasim/carla:0.9.15"
 
 def get_progress():
+    """
+    Read the progress value from a shared progress file.
+
+    Returns:
+        int: The progress value read from the file, or 0 if file cannot be read.
+    """
     try:
         with open("shared/progress.txt", "r") as f:
             return int(f.read().strip())
