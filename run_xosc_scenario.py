@@ -55,6 +55,14 @@ default_terminal = "/dev/pts/10"
 NUM_EPISODES = 1000
 
 def get_candidates():
+    """
+    Read candidate data from a shared JSON file.
+
+    Attempts to load candidate data from the DoE messages directory.
+
+    Returns:
+        list or None: The candidate data loaded from JSON file, or None if file cannot be read.
+    """
     try:
         with open("/workspace/shared/doe_messages/candidates.json", "r") as f:
             return json.load(f)
@@ -62,11 +70,31 @@ def get_candidates():
         return None
 
 def write_kpi(data):
+    """
+    Write KPI data to a shared JSON file.
+
+    Outputs the provided KPI data to the DoE messages directory for 
+    consumption by other processes.
+
+    Args:
+        data: The KPI data to write to the JSON file.
+
+    Returns:
+        None: Function does not return a value.
+    """
     print(f"Writing {data}")
     with open("/workspace/shared/doe_messages/kpi.json", "w") as f:
         json.dump(data, f)
 
 def clear_candiates():
+    """
+    Clear candidates data by writing an empty list to the candidates JSON file.
+
+    Note: Function name has a typo (should be 'clear_candidates').
+
+    Returns:
+        None: Always returns None, regardless of success or failure.
+    """
     try:
         with open("/workspace/shared/doe_messages/candidates.json", "w") as f:
             json.dump([], f)
@@ -75,6 +103,19 @@ def clear_candiates():
 
 
 def compute_WD(gt, other):
+    """
+    Compute the Wasserstein distance between two datasets.
+
+    Creates histograms for both ground truth and other data, then calculates
+    the Wasserstein distance between them.
+
+    Args:
+        gt (array-like): Ground truth data values.
+        other (array-like): Other data values to compare against ground truth.
+
+    Returns:
+        float: The Wasserstein distance between the two datasets.
+    """
     gt_histogram, gt_bins = np.histogram(gt, bins=int(np.ceil(np.sqrt(len(gt)))))
     gt_histogram = gt_histogram + .1
     gt_histogram /= np.sum(gt_histogram)
@@ -88,6 +129,18 @@ def compute_WD(gt, other):
     return wd
 
 def get_all_vehicles(client):
+    """
+    Get all vehicle actors from the CARLA simulation world.
+
+    Retrieves all actors from the CARLA world and filters them to return
+    only those that are vehicles (cars).
+
+    Args:
+        client (carla.Client): The CARLA client instance.
+
+    Returns:
+        list: A list of vehicle actors from the simulation.
+    """
     # Get the world (simulation environment)
     world = client.get_world()
 
@@ -102,6 +155,20 @@ def get_all_vehicles(client):
     
 
 def main(args):
+    """
+    Main function to run the XOSC scenario simulation.
+
+    Orchestrates the entire simulation process including environment setup,
+    agent initialization, and scenario execution with different strategies
+    (DoE, random, CAT, etc.).
+
+    Args:
+        args: Command-line arguments containing simulation configuration
+            including strategy, CARLA host/port, and other parameters.
+
+    Returns:
+        None: Function does not return a value.
+    """
     print("starting here")
     with open(progress_file, "w") as f:
         f.write(str(0))

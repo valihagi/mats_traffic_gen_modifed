@@ -7,6 +7,18 @@ from scipy.spatial.transform import Rotation
 
 class PosePublisher(Node):
     def __init__(self):
+        """
+        Initialize the PosePublisher node.
+
+        Sets up the ROS2 node, creates a publisher for pose messages,
+        and initializes a timer for periodic publishing.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         super().__init__('pose_publisher')
 
         # Create a publisher on the '/initialpose' topic
@@ -16,6 +28,18 @@ class PosePublisher(Node):
         self.timer = self.create_timer(1.0, self.publish_pose)  # Publish every 1 second
 
     def publish_pose(self):
+        """
+        Publish a pose message to the '/planning/mission_planning/goal' topic.
+
+        Creates and publishes a PoseStamped message using the stored pose data.
+        Logs the published message for debugging purposes.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         # Create the message
         pose_msg = PoseStamped()
 
@@ -38,6 +62,20 @@ class PosePublisher(Node):
         self.get_logger().info('Publishing: {}'.format(pose_msg))
         
     def convert_from_carla_to_autoware(self, carla_point, autoware_point=None):
+        """
+        Convert CARLA coordinate system pose to Autoware coordinate system.
+
+        Takes a CARLA Transform object and converts it to Autoware's coordinate
+        system, storing the result for later publishing.
+
+        Args:
+            carla_point (carla.Transform): The CARLA pose to convert.
+            autoware_point (dict, optional): Pre-converted Autoware pose data.
+                If provided, this will be used instead of converting carla_point.
+
+        Returns:
+            None: The converted pose is stored in self.pose_msg.
+        """
         if autoware_point:
             print("target point chosen from autowarePoint \n")
             self.pose_msg = autoware_point

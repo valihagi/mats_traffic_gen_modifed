@@ -5,6 +5,12 @@ import time
 from active_doe_module.webapi_client import active_doe_client
 
 def get_kpi():
+    """
+    Read KPI data from a shared JSON file.
+
+    Returns:
+        list or None: The KPI data loaded from JSON file, or None if file cannot be read.
+    """
     try:
         with open("shared/doe_messages/kpi.json", "r") as f:
             return json.load(f)
@@ -12,6 +18,12 @@ def get_kpi():
         return None
     
 def clear_kpi():
+    """
+    Clear KPI data by writing an empty list to the KPI JSON file.
+
+    Returns:
+        None: Always returns None, regardless of success or failure.
+    """
     try:
         with open("shared/doe_messages/kpi.json", "w") as f:
             json.dump([], f)
@@ -19,6 +31,15 @@ def clear_kpi():
         return None
 
 def write_candidates(data):
+    """
+    Write candidate data to a shared JSON file.
+
+    Args:
+        data: The candidate data to write to the JSON file.
+
+    Returns:
+        None: Function does not return a value.
+    """
     with open("shared/doe_messages/candidates.json", "w") as f:
         json.dump(data, f)
 
