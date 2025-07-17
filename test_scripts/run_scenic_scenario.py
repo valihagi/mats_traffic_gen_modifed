@@ -32,7 +32,6 @@ from helpers import run_docker_command
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
-#from motion_state_subscriber import MotionStateSubscriber
 import signal
 from pprint import pprint
 import math
@@ -117,7 +116,7 @@ def main(args):
     )
     
     if strategy == "doe":
-        with open("active_doe_module/setup_scenic.json", "r") as fp:
+        with open("../active_doe_module/setup_scenic.json", "r") as fp:
             setup = json.load(fp)
     
         with active_doe_client(hostname="localhost", port=8011, use_sg=False) as doe_client:

@@ -29,8 +29,6 @@ from helpers import get_carla_point_from_xml, run_docker_command
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
-#from motion_state_subscriber import MotionStateSubscriber
-import signal
 from pprint import pprint
 import math
 from tqdm import tqdm
@@ -206,9 +204,6 @@ def main(args):
         for i in tqdm(range(550)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-        #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
-        # Wait until the vehicle is stopped
-        #motion_state_subscriber.wait_until_stopped()
         
         """pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_xml())
 
