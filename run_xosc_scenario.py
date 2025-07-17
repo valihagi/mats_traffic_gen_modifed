@@ -33,7 +33,6 @@ from helpers import create_random_traj, generate_even_timestamps, generate_param
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
-#from motion_state_subscriber import MotionStateSubscriber
 import signal
 from pprint import pprint
 import math
@@ -52,11 +51,6 @@ autoware_terminal = "/dev/pts/8"
 bridge_terminal = "/dev/pts/9"
 default_terminal = "/dev/pts/10"
 
-
-"""
-This example shows how to use the CarlaVisualizationWrapper to create visualizations
-inside the CARLA simulator. The visualization is done by adding a callback to the wrapper.
-"""
 
 NUM_EPISODES = 1000
 
@@ -139,27 +133,8 @@ def main(args):
         adv_agents="adversary",
     )
     env.agents.append('adversary')
-    """vehicles = []
-    client = carla.Client(args.carla_host, args.carla_port)
-    while len(vehicles) == 0:
-        CarlaDataProvider.get_world().tick()
-        vehicles = get_all_vehicles(client)
-        print(vehicles)
-        adv_veh = None
-        for veh in vehicles:
-            if veh.type_id == "vehicle.audi.tt":
-                adv_veh = veh
-                break"""
-    
-    #dummy target point for ego, needs to be set for xosc scenarios
-    # Hardcoded for now since ego behaviour is not specified in our xosc file
-    #(76,17)
-    
-    
-    """target_point = carla.Transform(
-        carla.Location(55, -13.5, 0.0),  # Assuming Z = 0 for ground level
-        carla.Rotation(yaw=angle_deg)
-    )"""
+
+
     #other scenario
     if test_xosc == "test":
         direction_vector = (-1, 0)
@@ -209,18 +184,8 @@ def main(args):
             carla.Rotation(yaw=angle_deg)
         )
 
-    autoware_target_point = None #"""{
-            #'x': 71.0,
-            #'y': -13.5,
-            #'z': 0.0,  # Assuming Z remains the same
-            #'x1': 0.0,
-            #'y1': 0.0,
-            #'z1': -0.9999924884745914,
-            #'w': 0.003875950772917655
-        #}"""
     print("Target point is:----------------:")
     print(target_point)
-    #get same as in scenic scneario should work
 
     ran_counter = 0
 
@@ -228,15 +193,6 @@ def main(args):
         print("USING Active DoE")
         with open("active_doe_module/setup_xosc.json", "r") as fp:
             setup = json.load(fp)
-            
-        """if len(start_design)>0:
-            measurements = [
-                dict(
-                    Variations=variations,
-                    Responses=run_simulation(variations=variations, setup=setup)
-                ) for variations in start_design
-            ]
-            client.insert_measurements(measurements=measurements)"""
 
         
         json_file_number = 7
@@ -275,10 +231,6 @@ def main(args):
                         })
                     
                     CarlaDataProvider.get_world().tick()
-                    
-                    #times = generate_timestamps(100, 80, 1, )
-                    """times = generate_even_timestamps(80, 18)
-                    adv_traj, ego_traj, ego_width, ego_length = generate_parametrized_adversarial_route(env, 80, times)"""
 
                     adv = env.actors["adversary"]
                     adv_loc = adv.get_location()
@@ -310,7 +262,6 @@ def main(args):
                         strategy=strategy,
                         adv_path=adv_traj,
                         pose_publisher=pose_publisher,
-                        autoware_target_point= autoware_target_point,
                         parameters=parameters,
                         test_xosc=test_xosc)
                         print(f"AW started: {aw_started}")
@@ -419,7 +370,6 @@ def main(args):
                     strategy=strategy,
                     adv_path=adv_traj,
                     pose_publisher=pose_publisher,
-                    autoware_target_point= autoware_target_point,
                     parameters=parameters,
                     test_xosc=test_xosc)
                     print(f"AW started: {aw_started}")
@@ -452,8 +402,6 @@ def main(args):
                         time.sleep(60)
             CarlaDataProvider.get_world().tick()
             already_reset = False
-            #times = generate_timestamps(100, 80, .6, 3.5)
-            #adv_traj, ego_traj, ego_width, ego_length, parameters = generate_random_adversarial_route(env, 80, times)
 
             #random offset from start position
             adv = env.actors["adversary"]
@@ -467,33 +415,6 @@ def main(args):
             adv_traj, parameters = create_random_traj((adv_loc.x, -adv_loc.y), env._network, test_xosc=test_xosc)
             parameters.append(random_offset)
 
-            """env = mats_gym.openscenario_env(
-                scenario_files="scenarios/open_scenario/test.xosc",
-                host=args.carla_host,
-                port=args.carla_port,
-                seed=SEED,
-                render_mode="human",
-                render_config=camera_pov(agent="ego_vehicle"),
-            )
-
-            env = AdversarialTrainingWrapper(
-                env=env,
-                args=args,
-                model_path="cat/advgen/pretrained/densetnt.bin",
-                ego_agent="ego_vehicle",
-                adv_agents="adversary",
-            )
-            env.agents.append('adversary')"""
-            
-            """obs, info = env.reset(options={
-            })"""
-            #check ego traj
-            #env.check_on_roadgraph_old(ego_traj, iteration_counter)
-            """if not env.check_on_roadgraph(adv_traj, iteration_counter):
-                print("Created trajectory is not on the roadgraph and will therefore be skipped!")
-                already_reset = True
-                save_log_file(env, info, parameters, iteration_counter, in_odd=False)
-                continue"""
             ran_counter += 1
         elif strategy == "cat":
             print("USING CAT")
@@ -520,33 +441,6 @@ def main(args):
         else:
             print("unknown startegy please check the config.")
             return
-        
-        """world = CarlaDataProvider.get_world()
-        ego = env.actors["adversary"]
-        ego_loc = ego.get_location()
-        color = carla.Color(*(100,0,0))
-        arr = [[104.5, 27.5],
-               [104.5, 19],
-               [101, 15.5],
-               [97.5, 13.5],
-               [97.5, 17.5],
-               [101, 20],
-               [102.5, 22.5]]
-        
-        for point in arr:
-            loc = carla.Location(point[0], point[1], z=5)
-            world.debug.draw_point(loc, size=.5, color=color)
-
-        spec = world.get_spectator()
-        spec.set_transform(carla.Transform(
-            carla.Location(ego_loc.x, ego_loc.y, ego_loc.z + 60),
-            carla.Rotation(pitch=-90)
-        ))
-
-        settings = world.get_settings()
-        world.apply_settings(settings)
-        world.tick()l
-        time.sleep(100)"""
 
         print(f"STARTING scenario... counter: {ran_counter}")
         try:
@@ -568,7 +462,6 @@ def main(args):
                         adv_path=adv_traj,
                         pose_publisher=pose_publisher,
                         iteration=ran_counter,
-                        autoware_target_point= autoware_target_point,
                         parameters=parameters,
                         test_xosc=test_xosc)
             """kpis = env.get_min_ttc_as_dict()

@@ -29,16 +29,16 @@ from helpers import run_docker_command
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
-#from motion_state_subscriber import MotionStateSubscriber
 import signal
 from pprint import pprint
 import math
 from tqdm import tqdm
+from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "bold_kapitsa"
-bridge_container_name = "gracious_kowalevski"
+autoware_container_name = "pensive_curie"
+bridge_container_name = "pensive_hugle"
 
 autoware_terminal = "/dev/pts/14"
 bridge_terminal = "/dev/pts/15"
@@ -132,6 +132,19 @@ def run_carla_aw_bridge(container_name):
         "port:=2000 passive:=True register_all_sensors:=False timeout:=180"
     )
     return run_docker_command(container_name, command, bridge_terminal)
+
+def compute_WD(gt, other):
+    gt_histogram, gt_bins = np.histogram(gt, bins=int(np.ceil(np.sqrt(len(gt)))))
+    gt_histogram = gt_histogram + .1
+    gt_histogram /= np.sum(gt_histogram)
+
+    other_histogram, _ = np.histogram(other, bins=gt_bins)
+    other_histogram = other_histogram + .1
+    other_histogram /= np.sum(other_histogram)
+
+    wd = wasserstein_distance(u_values=gt_bins[:-1], v_values=gt_bins[:-1],
+                                u_weights=gt_histogram, v_weights=other_histogram)
+    return wd
     
 
 def main(args):
@@ -183,23 +196,14 @@ def main(args):
                 #actions[agent] = np.array([.50, 0, 0])
         return actions
     
+    obs, info = env.reset(options={
+            "scene": scene
+        })
     for e in range(NUM_EPISODES):
         aw_process = run_autoware_simulation(autoware_container_name)
-        obs, info = env.reset(options={
-            "scene": scene,
-            "random": True
-        })
+        
 
         agents = get_agents(env)
-        traj = [
-            (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
-            for point in info["adversary"]["adv_trajectory"]
-        ]
-        adv_agent = TrajectoryFollowingAgent(
-            vehicle=env.actors["adversary"],
-            trajectory=traj
-        )
-        agents["adversary"] = adv_agent
         client = carla.Client(args.carla_host, args.carla_port)
         
         
@@ -215,12 +219,10 @@ def main(args):
         
         
         print("\n waiting for autoware...")
-        for i in tqdm(range(400)):
+        for i in tqdm(range(500)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
-        #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
-        # Wait until the vehicle is stopped
-        #motion_state_subscriber.wait_until_stopped()
+
         
         pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
 
@@ -230,14 +232,14 @@ def main(args):
             pass
         
         print("\n watiting for autonomous mode....")
-        for i in tqdm(range(120)):
+        for i in tqdm(range(60)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
             
         control_change_process = change_control_mode(autoware_container_name)
         
         print("\n starting autoware...")
-        for i in tqdm(range(133)):
+        for i in tqdm(range(100)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -253,8 +255,6 @@ def main(args):
         
         run_docker_restart_command(bridge_container_name, default_terminal)
         run_docker_restart_command(autoware_container_name, default_terminal)
-
-        scene, _ = scenario.generate()
         
         aw_process = run_autoware_simulation(autoware_container_name)
 
@@ -262,6 +262,9 @@ def main(args):
             "scene": scene,
             "adversarial": True
         })
+
+        gt_yaw = info["kpis"]["adv_yaw"]
+        gt_acc = info["kpis"]["adv_acc"]
 
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
@@ -282,7 +285,7 @@ def main(args):
         carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name) 
 
         print("waiting for autoware....")
-        for i in tqdm(range(480)):
+        for i in tqdm(range(560)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
         
@@ -294,7 +297,7 @@ def main(args):
             pass
         
         print("waiting for autonomous mode....")
-        for i in tqdm(range(160)):
+        for i in tqdm(range(60)):
             time.sleep(.1)
             CarlaDataProvider.get_world().tick()
             
@@ -309,18 +312,32 @@ def main(args):
         while not done:
             actions = joint_policy(agents)
             obs, reward, done, truncated, info = env.step(actions)
+            if env.coll:
+                collision = True
+                break
             done = all(done.values())
             env.render()
             time.sleep(.02)
 
         scene, _ = scenario.generate()
+        obs, info = env.reset(options={
+            "scene": scene
+        })
+
+        other_yaw = info["kpis"]["adv_yaw"]
+        other_acc = info["kpis"]["adv_acc"]
+        ttc = min(info["kpis"]["ttc"])
+
+        print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
+        print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
+        print(f"min ttc: {ttc}")
+        print(f"collision: {collision}")
         
-        if e != NUM_EPISODES:
-            print("----------------------")
-            print("restarting containers")
-        
-            run_docker_restart_command(bridge_container_name, default_terminal)
-            run_docker_restart_command(autoware_container_name, default_terminal)
+        print("----------------------")
+        print("restarting containers")
+    
+        run_docker_restart_command(bridge_container_name, default_terminal)
+        run_docker_restart_command(autoware_container_name, default_terminal)
     env.close()
 
 

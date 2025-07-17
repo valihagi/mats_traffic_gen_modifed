@@ -4,6 +4,10 @@ import pickle
 import random
 import os
 
+import json, time, os,sys
+from requests.sessions import session
+from active_doe_module.webapi_client import active_doe_client
+
 import carla
 import time
 import mats_gym
@@ -25,21 +29,19 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_msgs.msg import Header
 from pose_publisher import PosePublisher
-from helpers import run_docker_command
+from helpers import get_carla_point_from_xml, run_docker_command
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
-#from motion_state_subscriber import MotionStateSubscriber
 import signal
 from pprint import pprint
 import math
 from tqdm import tqdm
-from scipy.stats import wasserstein_distance
 
 import subprocess
 
-autoware_container_name = "pensive_curie"
-bridge_container_name = "pensive_hugle"
+autoware_container_name = "bold_kapitsa"
+bridge_container_name = "gracious_kowalevski"
 
 autoware_terminal = "/dev/pts/14"
 bridge_terminal = "/dev/pts/15"
@@ -133,19 +135,6 @@ def run_carla_aw_bridge(container_name):
         "port:=2000 passive:=True register_all_sensors:=False timeout:=180"
     )
     return run_docker_command(container_name, command, bridge_terminal)
-
-def compute_WD(gt, other):
-    gt_histogram, gt_bins = np.histogram(gt, bins=int(np.ceil(np.sqrt(len(gt)))))
-    gt_histogram = gt_histogram + .1
-    gt_histogram /= np.sum(gt_histogram)
-
-    other_histogram, _ = np.histogram(other, bins=gt_bins)
-    other_histogram = other_histogram + .1
-    other_histogram /= np.sum(other_histogram)
-
-    wd = wasserstein_distance(u_values=gt_bins[:-1], v_values=gt_bins[:-1],
-                                u_weights=gt_histogram, v_weights=other_histogram)
-    return wd
     
 
 def main(args):
@@ -154,8 +143,6 @@ def main(args):
     SEED = 226
     random.seed(SEED)
     np.random.seed(SEED)
-    scenario: Scenario = scenic.scenarioFromFile("scenarios/scenic/one_adv_intersection.scenic")
-    scene, _ = scenario.generate()
     """for i in range(10):
         scene, _ = scenario.generate()
     
@@ -168,6 +155,8 @@ def main(args):
         
     while(1):
         time.sleep(1)"""
+    scenario: Scenario = scenic.scenarioFromFile("scenarios/scenic/one_adv_intersection.scenic")
+    scene, _ = scenario.generate()
 
     env = mats_gym.scenic_env(
         host=args.carla_host,
@@ -197,150 +186,106 @@ def main(args):
                 #actions[agent] = np.array([.50, 0, 0])
         return actions
     
-    obs, info = env.reset(options={
-            "scene": scene
-        })
-    for e in range(NUM_EPISODES):
-        aw_process = run_autoware_simulation(autoware_container_name)
-        
-
-        agents = get_agents(env)
-        client = carla.Client(args.carla_host, args.carla_port)
-        
-        
-        done = False
-        CarlaDataProvider.get_world().tick()
-        
-        print("\n starting up...")
-        for i in tqdm(range(100)):
-            CarlaDataProvider.get_world().tick()
-            time.sleep(.1)
-        
-        carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name)
-        
-        
-        print("\n waiting for autoware...")
-        for i in tqdm(range(500)):
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-        #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
-        # Wait until the vehicle is stopped
-        #motion_state_subscriber.wait_until_stopped()
-        
-        pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
-
-        try:
-             rclpy.spin_once(pose_publisher, timeout_sec=2)
-        except KeyboardInterrupt:
-            pass
-        
-        print("\n watiting for autonomous mode....")
-        for i in tqdm(range(60)):
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-            
-        control_change_process = change_control_mode(autoware_container_name)
-        
-        print("\n starting autoware...")
-        for i in tqdm(range(100)):
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-        
-        while not done:
-            actions = joint_policy(agents)
-            obs, reward, done, truncated, info = env.step(actions)
-            time.sleep(.02)
-            done = all(done.values())
-            env.render()
-            
-        print("----------------------")
-        print("restarting containers")
-        
-        run_docker_restart_command(bridge_container_name, default_terminal)
-        run_docker_restart_command(autoware_container_name, default_terminal)
-        
-        aw_process = run_autoware_simulation(autoware_container_name)
-
-        obs, info = env.reset(options={
-            "scene": scene,
-            "adversarial": True
-        })
-
-        gt_yaw = info["kpis"]["adv_yaw"]
-        gt_acc = info["kpis"]["adv_acc"]
-
-        traj = [
-            (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
-            for point in info["adversary"]["adv_trajectory"]
-        ]
-        adv_agent = TrajectoryFollowingAgent(
-            vehicle=env.actors["adversary"],
-            trajectory=traj
-        )
-        agents = get_agents(env)
-        agents["adversary"] = adv_agent
-        
-        """for i in range(100):
-            print(i)
-            CarlaDataProvider.get_world().tick()
-            time.sleep(.1)"""
-        
-        carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name) 
-
-        print("waiting for autoware....")
-        for i in tqdm(range(560)):
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-        
-        pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
-        CarlaDataProvider.get_world().tick()
-        try:
-             rclpy.spin_once(pose_publisher, timeout_sec=2)
-        except KeyboardInterrupt:
-            pass
-        
-        print("waiting for autonomous mode....")
-        for i in tqdm(range(60)):
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-            
-        control_change_process = change_control_mode(autoware_container_name)
-        
-        print("starting autoware....")
-        for i in tqdm(range(100)):
-            time.sleep(.1)
-            CarlaDataProvider.get_world().tick()
-	
-        done = False
-        while not done:
-            actions = joint_policy(agents)
-            obs, reward, done, truncated, info = env.step(actions)
-            if env.coll:
-                collision = True
-                break
-            done = all(done.values())
-            env.render()
-            time.sleep(.02)
-
-        scene, _ = scenario.generate()
-        obs, info = env.reset(options={
-            "scene": scene
-        })
-
-        other_yaw = info["kpis"]["adv_yaw"]
-        other_acc = info["kpis"]["adv_acc"]
-        ttc = min(info["kpis"]["ttc"])
-
-        print(f"yaw-wasserstein distance: {compute_WD(gt_yaw, other_yaw)}")
-        print(f"acc-wasserstein distance: {compute_WD(gt_acc, other_acc)}")
-        print(f"min ttc: {ttc}")
-        print(f"collision: {collision}")
-        
-        print("----------------------")
-        print("restarting containers")
+    with open("../active_doe_module/setup_scenic.json", "r") as fp:
+        setup = json.load(fp)
     
-        run_docker_restart_command(bridge_container_name, default_terminal)
-        run_docker_restart_command(autoware_container_name, default_terminal)
+    with active_doe_client(hostname="localhost", port=8011, use_sg=False) as doe_client:
+        session=doe_client.initialize(setup=setup)
+        if session is None:
+            raise Exception("could not initialize session")
+        measurements = [
+            dict(
+                Variations={"adv_target_speed": 50},
+                Responses={"ttc": 1.0}
+            )
+        ]
+        #client.insert_measurements(measurements=measurements)
+        while True:
+
+            candidates=doe_client.get_candidates(size=1, latest_models_required=True)
+            print(candidates)
+            measurements = []
+
+            for candidate in candidates:
+                ##unpack candiates and insert them into env.scenario
+                env.parameters = candidate["Variations"]
+
+                aw_process = run_autoware_simulation(autoware_container_name)
+                obs, info = env.reset(options={
+                "scene": scene,
+                "parametrized": True
+                })
+
+                agents = get_agents(env)
+                traj = [
+                    (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
+                    for point in info["adversary"]["adv_trajectory"]
+                ]
+
+                adv_agent = TrajectoryFollowingAgent(
+                    vehicle=env.actors["adversary"],
+                    trajectory=traj
+                )
+                agents["adversary"] = adv_agent
+                        
+                done = False
+                CarlaDataProvider.get_world().tick()
+                
+                print("\n starting up...")
+                for i in tqdm(range(100)):
+                    CarlaDataProvider.get_world().tick()
+                    time.sleep(.1)
+                
+                carla_aw_bridge_process = run_carla_aw_bridge(bridge_container_name)
+                
+                
+                print("\n waiting for autoware...")
+                for i in tqdm(range(550)):
+                    time.sleep(.1)
+                    CarlaDataProvider.get_world().tick()
+                
+                pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
+
+                try:
+                    rclpy.spin_once(pose_publisher, timeout_sec=2)
+                except KeyboardInterrupt:
+                    pass
+                
+                print("\n watiting for autonomous mode....")
+                for i in tqdm(range(120)):
+                    time.sleep(.1)
+                    CarlaDataProvider.get_world().tick()
+                    
+                control_change_process = change_control_mode(autoware_container_name)
+                
+                print("\n starting autoware...")
+                for i in tqdm(range(10)):
+                    time.sleep(.1)
+                    CarlaDataProvider.get_world().tick()
+                
+                while not done:
+                    actions = joint_policy(agents)
+                    obs, reward, done, truncated, info = env.step(actions)
+                    time.sleep(.02)
+                    done = all(done.values())
+                    env.render()
+
+                #retrieve all kpis and feed them to activeDoE
+                kpis = env.get_ttc_as_dict()
+                measurements.append(dict(
+                    Index=candidate['Index'],
+                    Variations=candidate['Variations'],
+                    Responses=kpis
+                    )
+                )
+                    
+                print("----------------------")
+                print("restarting containers")
+                
+                run_docker_restart_command(bridge_container_name, default_terminal)
+                run_docker_restart_command(autoware_container_name, default_terminal)
+            doe_client.insert_measurements(measurements=measurements)
+        
     env.close()
 
 

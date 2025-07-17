@@ -32,7 +32,6 @@ from helpers import run_docker_command, save_log_file
 from helpers import get_docker_ouptut
 from helpers import run_docker_restart_command
 from helpers import get_carla_point_from_scene
-#from motion_state_subscriber import MotionStateSubscriber
 import signal
 from pprint import pprint
 import math
@@ -165,14 +164,9 @@ def joint_policy(agents, counter=None):
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
                    bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None,
                    test_xosc=None):
-    #run_docker_restart_command(carla_container_name, default_terminal)
-    """obs, info = env.reset(options={
-                "scene": scene
-            })"""
-    #print("sleeping now")
+
     print("test")
     aw_process = run_autoware_simulation(autoware_container_name, autoware_terminal)
-    #run_docker_restart_command(autoware_container_name, default_terminal)
         
     if scene is not None:
         agents = get_agents(env)
@@ -215,9 +209,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
     for i in tqdm(range(100)):
         time.sleep(.1)
         CarlaDataProvider.get_world().tick()"""
-    #motion_state_subscriber = MotionStateSubscriber(CarlaDataProvider.get_world())
-    # Wait until the vehicle is stopped
-    #motion_state_subscriber.wait_until_stopped()
+
     if scene is not None:
         pose_publisher.convert_from_carla_to_autoware(get_carla_point_from_scene(scene))
     else:
@@ -309,13 +301,7 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         
     print("----------------------")
     print("restarting containers")
-    
-    #if iteration % 8 == 0:
-    """print("Also restarting carla this iteartion to prevent it from segfaulting")
-    run_docker_restart_command(carla_container_name, default_terminal)
-    print("sleeping")
-    time.sleep(20)
-    print("waking up")"""
+
     run_docker_restart_command(autoware_container_name, default_terminal)
     run_docker_restart_command(bridge_container_name, default_terminal)
 
@@ -355,8 +341,6 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         print("Reseting the environment")
 
 
-        #gt_yaw = info["kpis"]["adv_yaw"]
-        #gt_acc = info["kpis"]["adv_acc"]
         print("getting_traj")
         if info["adversary"]["adv_trajectory"] is None:
             print("no valid traj exiting...")
@@ -458,10 +442,6 @@ def run_simulation(autoware_container_name, bridge_container_name, carla_contain
         print("----------------------")
         print("restarting containers")
 
-        """if iteration % 8 == 0:
-            print("Also restarting carla this iteartion to prevent it from segfaulting")
-            run_docker_restart_command(carla_container_name, default_terminal)
-            time.sleep(5)"""
         run_docker_restart_command(autoware_container_name, default_terminal)
         run_docker_restart_command(bridge_container_name, default_terminal)
 
@@ -550,9 +530,6 @@ def run_dummy_simulation(autoware_container_name, bridge_container_name, carla_c
             "scene": scene,
             "adversarial": True
         })
-
-        #gt_yaw = info["kpis"]["adv_yaw"]
-        #gt_acc = info["kpis"]["adv_acc"]
 
         traj = [
             (carla.Location(x=point[0], y=point[1]), point[2] * 3.6)
