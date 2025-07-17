@@ -245,22 +245,22 @@ def joint_policy(agents, counter=None):
         dict: Dictionary mapping agent names to their control actions as numpy arrays
             containing [throttle, steer, brake] values.
     """
-        actions = {}
-        for agent in agents:
-            if counter is not None:
-                if agent != "ego_vehicle":
-                    print("inhere")
-                    if counter > 60:
-                        actions[agent] = np.array([.65, 0, 0])
-                    else:
-                        actions[agent] = np.array([0, 0, 0])
-                    return actions
+    actions = {}
+    for agent in agents:
+        if counter is not None:
             if agent != "ego_vehicle":
-                ctrl = agents[agent].run_step()
-                actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
-            """else:
-                actions[agent] = np.array([.72, -.09, 0])"""
-        return actions
+                print("inhere")
+                if counter > 60:
+                    actions[agent] = np.array([.65, 0, 0])
+                else:
+                    actions[agent] = np.array([0, 0, 0])
+                return actions
+        if agent != "ego_vehicle":
+            ctrl = agents[agent].run_step()
+            actions[agent] = np.array([ctrl.throttle, ctrl.steer, ctrl.brake])
+        """else:
+            actions[agent] = np.array([.72, -.09, 0])"""
+    return actions
 
 def run_simulation(autoware_container_name, bridge_container_name, carla_container_name, default_terminal, autoware_terminal,
                    bridge_terminal, env, args, scene, target_point, strategy, adv_path, pose_publisher, iteration, autoware_target_point=None, num_iterations=50, parameters=None,
