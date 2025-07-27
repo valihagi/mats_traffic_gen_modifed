@@ -1,3 +1,10 @@
+!!This repository is an adaptedversion of a project done by Axel Brunnbauer that was done within the ADEX project https://github.com/AutonomousDrivingExaminer!!
+
+The original project implemented the CAT method for the Carla simulator.
+This repository built on top of this and made the project work in a setup together with Autoware and also integrated other strategies than CAT to be able to make comparisons.
+
+Below you can find the instructions to setup for the original Repository from Axel. Extensive instructions to run the complete setup with Autoware and the other methods can be found in a file called Documentation.pdf.
+
 # ADEX - CAT Example
 
 ## Installation
