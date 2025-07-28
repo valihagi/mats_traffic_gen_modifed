@@ -44,7 +44,7 @@ import subprocess
 progress_file = "/workspace/shared/progress.txt"
 
 autoware_container_name = "objective_aryabhata"
-bridge_container_name = "infallible_dhawan"
+bridge_container_name = "ecstatic_panini"
 carla_container_name = "stupefied_villani"
 
 autoware_terminal = "/dev/pts/8"
@@ -515,7 +515,7 @@ def main(args):
             print("RUNNING scenario...")
         
 
-            run_simulation(autoware_container_name=autoware_container_name,
+            run_dummy_simulation(autoware_container_name=autoware_container_name,
                         bridge_container_name=bridge_container_name,
                         carla_container_name=carla_container_name,
                         default_terminal=default_terminal,
@@ -551,6 +551,6 @@ if __name__ == "__main__":
     parser.add_argument('--AV_traj_num', type=int, default=1)
     parser.add_argument('--carla-host', type=str, default="localhost")
     parser.add_argument('--carla-port', type=int, default=2000)
-    parser.add_argument('--strategy', type=str, default="cat_iterative")
+    parser.add_argument('--strategy', type=str, default="cat")
     gen = AdvGenerator(parser, pretrained_path="./cat/advgen/pretrained/densetnt.bin")
     main(gen.args)
