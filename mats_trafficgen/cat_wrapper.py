@@ -109,7 +109,7 @@ def visualize_traj(x, y, yaw, width, length, color, skip=5):
         time = ts[t]
         loc += carla.Location(z=0.2)
         world.debug.draw_string(loc, f"{time:.1f}s", draw_shadow=True, color=color,
-                                life_time=.2)
+                                life_time=1000)
 
 
 def get_full_trajectory(id, features, with_yaw=False, future=None):
@@ -230,7 +230,10 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
         if options.get("adversarial", False):
             # make option for random trajectory
             self._update_actor_ids()
+            print(options.get("strategy", "cat"))
+            print("tetstetetstste------")
             if options.get("strategy", "cat"):
+                
                 features, adv_traj = self._generate_adversarial_route()
             else:
                 features, adv_traj = self._generate_adversarial_route(check_odd=False)
@@ -533,7 +536,7 @@ class AdversarialTrainingWrapper(BaseScenarioEnvWrapper):
                 2.9,
                 (0, 5, 5)
             )
-            if not check_odd and not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
+            if check_odd and not self.check_on_roadgraph(full_adv_traj, j, traj_OV):
                 P4 = 0 #can be used to only allow trajs that are on the roadgraph
             
                 """visualize_traj(
