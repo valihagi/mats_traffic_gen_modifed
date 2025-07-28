@@ -5,6 +5,8 @@ This repository built on top of this and made the project work in a setup togeth
 
 Below you can find the instructions to setup for the original Repository from Axel. Extensive instructions to run the complete setup with Autoware and the other methods can be found in a file called Documentation.pdf.
 
+!!Also if you run the project using docker via ./scripts/run-docker-xosc_scenario.sh you dont need the manual setup steps from below.!!
+
 # ADEX - CAT Example
 
 ## Installation
